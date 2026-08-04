@@ -1,7 +1,7 @@
-from modules.storage import S3Database
+from mystocks_data_collector.modules.storage import S3Database
 
 
-def handler():
+def handler(event, context):
     db = S3Database()
     print(db.list_keys())
 
