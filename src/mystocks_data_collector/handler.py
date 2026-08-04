@@ -1,4 +1,8 @@
-from mystocks_data_collector.config import Config
+from modules.storage import S3Database
+
 
 def handler():
+    db = S3Database()
+    print(db.list_keys())
+
     print("Hello World")
