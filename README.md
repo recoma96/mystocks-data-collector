@@ -8,6 +8,9 @@
 
 이 프로젝트는 [uv](https://docs.astral.sh/uv/)로 의존성을 관리합니다. Python 3.14 이상이 필요합니다 (uv가 자동으로 설치/관리합니다).
 
+환경변수는 `.env.example`를 확인하여, 직접 추가하거나 최상위 루트에 `.env` 파일에 추가하면 됩니다.
+
+
 ```shell
 # uv 설치 (아직 설치하지 않았다면)
 $ curl -LsSf https://astral.sh/uv/install.sh | sh   # macOS/Linux
