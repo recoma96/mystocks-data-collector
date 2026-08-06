@@ -1,9 +1,17 @@
+import logging
+import time
 from abc import ABCMeta
 from typing import Any, Dict
 
 import httpx
 
+from mystocks_data_collector.config import Config
+from mystocks_data_collector.modules.client.logger import dump_redacted, dump_response_body
 from mystocks_data_collector.modules.exc import APIRequestError, APIResponseError
+
+
+logger = logging.getLogger(__name__)
+logging.getLogger().setLevel(Config.LOGGING_LEVEL)
 
 
 class APIClient(metaclass=ABCMeta):
@@ -32,6 +40,8 @@ class APIClient(metaclass=ABCMeta):
         json: Dict[str, Any] | None = None,
         headers: Dict[str, str] | None = None,
     ) -> Dict[str, Any]:
+        started_at = time.monotonic()
+
         try:
             response = await self._client.request(
                 method, path, params=params, data=data, json=json, headers=headers
@@ -40,6 +50,18 @@ class APIClient(metaclass=ABCMeta):
             raise APIRequestError(f"요청 시간 초과: {method} {path}", cause=e) from e
         except httpx.RequestError as e:
             raise APIRequestError(f"요청 실패: {method} {path}", cause=e) from e
+
+        elapsed_ms = (time.monotonic() - started_at) * 1000
+        url = response.url.copy_with(query=None)
+
+        logger.info("API %s %s -> %s (%.1fms)", method, url, response.status_code, elapsed_ms)
+        logger.debug(
+            "API %s %s request=%s response=%s",
+            method,
+            url,
+            dump_redacted({"params": params, "data": data, "json": json}),
+            dump_response_body(response),
+        )
 
         try:
             response.raise_for_status()
