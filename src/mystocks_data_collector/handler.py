@@ -1,30 +1,17 @@
 import asyncio
 import logging
-from typing import Any, Dict, Tuple, TypeAlias
+from typing import Any, Dict, Tuple
 
 from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.tossinvest_api.client import TossInvestAPI
-from mystocks_data_collector.modules.client.tossinvest_api.responses import (
-    TossInvestBuyingPowerResponse,
-    TossInvestCurrentStockPriceResponse,
-    TossInvestOrdersResponse,
-    TossInvestStocksResponse
-)
 from mystocks_data_collector.modules.exc import APIResponseError
 from mystocks_data_collector.modules.logics.collection import get_benchmark_stocks_current_prices
+from mystocks_data_collector.modules.logics.transform import create_portpolio_by_api_repsonse
+from mystocks_data_collector.modules.types import ApiRepsonses
 from mystocks_data_collector.modules.utils import now_korea
 
 
 logger = logging.getLogger(__name__)
-
-
-ApiRepsonses:  TypeAlias = Tuple[
-    Dict[str, TossInvestCurrentStockPriceResponse],
-    TossInvestBuyingPowerResponse,
-    TossInvestStocksResponse,
-    TossInvestOrdersResponse,
-]
-
 
 def handler(event, context):
     _set_before_handler()
@@ -48,7 +35,7 @@ async def main():
     if error:
         return create_response(error, 500)
 
-    res_benchmark_prices, res_buying_power, res_stocks, res_orders = api_responses
+    create_portpolio_by_api_repsonse(*api_responses)
 
     return create_response("Success", 200)
 
@@ -62,7 +49,7 @@ async def collect_data_from_tossinvest() -> Tuple[str | None, ApiRepsonses | Non
             api.update_headers({"Authorization": f"Bearer {access_token}"})
 
             return None, await asyncio.gather(
-                get_benchmark_stocks_current_prices(api, Config.PEER_STOCKS),
+                get_benchmark_stocks_current_prices(api, list(Config.PEER_STOCKS.keys())),
                 api.get_buying_power(),
                 api.get_stocks(),
                 api.get_orders(from_date=today.date(), to_date=today.date())
