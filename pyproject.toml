@@ -12,6 +12,7 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.13.4",
     "types-boto3[essential]>=1.43.63",
+    "tzdata>=2026.3",
 ]
 
 [project.scripts]

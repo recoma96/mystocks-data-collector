@@ -78,7 +78,7 @@ class TossInvestAPI(APIClient):
             cash_buying_power=raw_response["result"]["cashBuyingPower"]
         )
 
-    async def get_stocks(self, account_number: int = 1):
+    async def get_stocks(self, account_number: int = 1) -> TossInvestStocksResponse:
         """보유 종목 조회
         """
         self._put_account_number_into_header(account_number)
@@ -95,7 +95,7 @@ class TossInvestAPI(APIClient):
             status: TossInvestOrderStatus = TossInvestOrderStatus.CLOSED,
             limit: int = 20,
             cursor: str = None,
-    ):
+    ) -> TossInvestOrdersResponse:
         self._put_account_number_into_header(account_number)
 
         params = {
@@ -110,9 +110,12 @@ class TossInvestAPI(APIClient):
 
         raw_response = await self.get("api/v1/orders", params=params)
 
+        # 체결 완료된 주문건만 필터링
+        raw_response["result"]["orders"] = list(
+            filter(lambda e: e["status"] == "FILLED", raw_response["result"]["orders"]))
+
         return TossInvestOrdersResponse(**raw_response["result"])
 
 
     def _put_account_number_into_header(self, account_number: int):
         self.set_header("X-Tossinvest-Account", str(account_number))
-
