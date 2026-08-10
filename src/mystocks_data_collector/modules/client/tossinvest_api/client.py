@@ -110,9 +110,12 @@ class TossInvestAPI(APIClient):
 
         raw_response = await self.get("api/v1/orders", params=params)
 
+        # 체결 완료된 주문건만 필터링
+        raw_response["result"]["orders"] = list(
+            filter(lambda e: e["status"] == "FILLED", raw_response["result"]["orders"]))
+
         return TossInvestOrdersResponse(**raw_response["result"])
 
 
     def _put_account_number_into_header(self, account_number: int):
         self.set_header("X-Tossinvest-Account", str(account_number))
-
