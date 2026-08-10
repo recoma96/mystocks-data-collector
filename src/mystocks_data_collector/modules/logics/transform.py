@@ -8,7 +8,7 @@ from mystocks_data_collector.modules.client.tossinvest_api.responses import (
     TossInvestOrdersResponse,
     TossInvestStocksResponse
 )
-from mystocks_data_collector.modules.types import BenchmarkPosition, Position
+from mystocks_data_collector.modules.types import BenchmarkPosition, PortpolioSnapshot, Position, Transaction, TransactionType
 from mystocks_data_collector.modules.utils import now_korea
 
 
@@ -28,7 +28,7 @@ def create_portpolio_by_api_repsonse(
             name=Config.PEER_STOCKS[ticker],
             ticker=ticker,
             current_price=item.current_price,
-            log_date=item.current_time,
+            log_date=today,
         )
         for ticker, item
         in res_benchmark_prices.items()
@@ -53,4 +53,21 @@ def create_portpolio_by_api_repsonse(
             log_date=today,
         )
         for item in res_stocks.items
+    ]
+
+    transactions = [
+        Transaction(
+            id=uuid4(),
+            portpolio_id=new_portpolio_id,
+            order_id=item.order_id,
+            ticker=item.symbol,
+            type=TransactionType.BUY if item.side == "BUY" else TransactionType.SELL,
+            order_amount=item.order_amount,
+            order_quanity=item.quantity,
+            filled_amount=item.execution.filled_amount,
+            avg_price=item.execution.average_filled_price,
+            filled_at=item.execution.filled_at,
+            log_date=today,
+        )
+        for item in res_orders.orders
     ]
