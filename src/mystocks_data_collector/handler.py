@@ -1,5 +1,4 @@
 import asyncio
-from datetime import timedelta
 import logging
 from typing import Any, Dict, Tuple
 
@@ -7,7 +6,9 @@ from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.tossinvest_api.client import TossInvestAPI
 from mystocks_data_collector.modules.exc import APIResponseError
 from mystocks_data_collector.modules.logics.collection import get_benchmark_stocks_current_prices, get_orders_full
+from mystocks_data_collector.modules.logics.storage import write_snapshots_to_s3
 from mystocks_data_collector.modules.logics.transform import create_portpolio_by_api_repsonse
+from mystocks_data_collector.modules.storage import S3Storage
 from mystocks_data_collector.modules.types import ApiRepsonses
 from mystocks_data_collector.modules.utils import now_korea
 
@@ -32,9 +33,13 @@ def _set_logger():
 async def main():
     # TODO 주말 및 휴장일 제외 로직 필요
 
+    s3_storage = S3Storage()
+
     error, api_responses = await collect_data_from_tossinvest()
     if error:
         return create_response(error, 500)
+
+    await write_snapshots_to_s3(s3_storage, api_responses)
 
     benchmarks, positions, transactions, portpolio = create_portpolio_by_api_repsonse(*api_responses)
 
