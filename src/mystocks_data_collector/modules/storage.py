@@ -18,6 +18,17 @@ class S3Storage:
     def put_object(self, key: str, body: str) -> None:
         self._s3.put_object(Bucket=Config.S3_BUCKET, Key=key, Body=body.encode("utf-8"))
 
+    def put_bytes(self, key: str, body: bytes) -> None:
+        self._s3.put_object(Bucket=Config.S3_BUCKET, Key=key, Body=body)
+
+    def get_object(self, key: str) -> bytes | None:
+        try:
+            response = self._s3.get_object(Bucket=Config.S3_BUCKET, Key=key)
+        except self._s3.exceptions.NoSuchKey:
+            return None
+
+        return response["Body"].read()
+
     def write_snapshot(self, topic: str, body: Any) -> None:
         # PATH: {topic}/{YYYY}/{MM}/{DD}/snapshot-{HH}-{mm}-{ss}-{millisecond}.json
         now = now_korea()

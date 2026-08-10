@@ -10,6 +10,8 @@ requires-python = ">=3.14"
 dependencies = [
     "boto3>=1.43.63",
     "httpx>=0.28.1",
+    "pandas>=3.0.5",
+    "pyarrow>=25.0.0",
     "pydantic>=2.13.4",
     "types-boto3[essential]>=1.43.63",
     "tzdata>=2026.3",
