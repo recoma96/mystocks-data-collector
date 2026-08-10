@@ -1,25 +1,29 @@
-from abc import ABCMeta
+import json
+from typing import Any
 
 import boto3
 from types_boto3_s3.client import S3Client
-from types_boto3_s3.type_defs import ListObjectsV2OutputTypeDef
 
 from mystocks_data_collector.config import Config
+from mystocks_data_collector.modules.utils import now_korea
 
 
-class Database(metaclass=ABCMeta):
-    pass
-
-
-class S3Database(Database):
+class S3Storage:
     _s3: S3Client
-    
+
     def __init__(self):
         super().__init__()
         self._s3 = boto3.client("s3", region_name=Config.AWS_REGION_NAME)
 
-    def list_keys(self):
-        # TODO S3 작동 여부를 위한 코드로 추후 삭제 예정
-        response: ListObjectsV2OutputTypeDef = self._s3.list_objects_v2(Bucket=Config.S3_BUCKET)
+    def put_object(self, key: str, body: str) -> None:
+        self._s3.put_object(Bucket=Config.S3_BUCKET, Key=key, Body=body.encode("utf-8"))
 
-        print(response)
+    def write_snapshot(self, topic: str, body: Any) -> None:
+        # PATH: {topic}/{YYYY}/{MM}/{DD}/snapshot-{HH}-{mm}-{ss}-{millisecond}.json
+        now = now_korea()
+        key = (
+            f"raw/{topic}/{now:%Y}/{now:%m}/{now:%d}/"
+            f"snapshot-{now:%H}-{now:%M}-{now:%S}-{now.microsecond // 1000:03d}.json"
+        )
+
+        self.put_object(key, json.dumps(body, ensure_ascii=False, default=str, indent=2))
