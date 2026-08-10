@@ -36,7 +36,7 @@ async def main():
     if error:
         return create_response(error, 500)
 
-    create_portpolio_by_api_repsonse(*api_responses)
+    benchmarks, positions, transactions, portpolio = create_portpolio_by_api_repsonse(*api_responses)
 
     return create_response("Success", 200)
 

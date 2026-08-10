@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from uuid import UUID, uuid4
 
 from mystocks_data_collector.config import Config
@@ -6,7 +6,6 @@ from mystocks_data_collector.modules.client.tossinvest_api.orders_responses impo
 from mystocks_data_collector.modules.client.tossinvest_api.responses import (
     TossInvestBuyingPowerResponse,
     TossInvestCurrentStockPriceResponse,
-    TossInvestOrdersResponse,
     TossInvestStocksResponse
 )
 from mystocks_data_collector.modules.types import BenchmarkPosition, PortpolioSnapshot, Position, Transaction, TransactionType
@@ -18,7 +17,7 @@ def create_portpolio_by_api_repsonse(
         res_buying_power: TossInvestBuyingPowerResponse,
         res_stocks: TossInvestStocksResponse,
         res_orders: List[TossInvestOrder],
-):
+) -> Tuple[List[BenchmarkPosition], List[Position], List[Transaction], PortpolioSnapshot]:
     new_portpolio_id: UUID = uuid4()
     today = now_korea()
 
@@ -85,3 +84,5 @@ def create_portpolio_by_api_repsonse(
         profit_amount_excluding_fees=res_stocks.profit_loss.amount_after_cost.usd,
         log_date=today,
     )
+
+    return benchmark_positions, positions, transactions, portpolio_snapshot
