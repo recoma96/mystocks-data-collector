@@ -72,3 +72,16 @@ def create_portpolio_by_api_repsonse(
         )
         for item in res_orders
     ]
+
+    portpolio_snapshot = PortpolioSnapshot(
+        id=new_portpolio_id,
+        total_value=res_buying_power.cash_buying_power + res_stocks.market_value.amount_after_cost.usd,
+        total_value_basis=res_buying_power.cash_buying_power + res_stocks.total_purchase_amount.usd,
+        cash_balance=res_buying_power.cash_buying_power,
+        positions_cost_basis=res_stocks.total_purchase_amount.usd,
+        positions_market_value=res_stocks.market_value.amount.usd,
+        positions_market_value_excluding_fees=res_stocks.market_value.amount_after_cost.usd,
+        profit_amount=res_stocks.profit_loss.amount.usd,
+        profit_amount_excluding_fees=res_stocks.profit_loss.amount_after_cost.usd,
+        log_date=today,
+    )

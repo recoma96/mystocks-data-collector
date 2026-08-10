@@ -100,15 +100,22 @@ class PortpolioSnapshot:
     보유 투자금 및 현금 상태
     """
     id: UUID
-    total_asset_value: float                        # 달러 계좌에 있는 총 금액
+    total_value: float                              # 현재 총 금액 (보유현금 + 수수료를 제외한 평가금액)
+    total_value_basis: float                        # 현재 총 원 금액 (보유현금 + 투자원금)
     cash_balance: float                             # 보유 현금
     positions_cost_basis: float                     # 투자원금
-    positions_cost_basis_excluding_fees: float      # 수수료를 제외한 투자원금
     positions_market_value: float                   # 평가금액
     positions_market_value_excluding_fees: float    # 수수료를 제외한 평가금액
-    profit_amount: float                            # 손익금액
-    profit_amount_excluding_fees: float             # 수수료를 제외한 손익금액
-    profit_rate: float                              # 손익비율
-    profit_rate_excluding_fees: float               # 투자금액을 제외한 손익비율
+    profit_amount: float                            # 투자 손익금액
+    profit_amount_excluding_fees: float             # 수수료를 제외한 투자 손익금액
     log_date: datetime
 
+    def to_str(self):
+        return (
+            f"계좌 총 금액: ${self.total_value}\n" +
+            f"계좌 원 금액: ${self.total_value_basis}\n" +
+            f"보유 현금: ${self.cash_balance}\n" +
+            f"투자원금: ${self.positions_cost_basis}, 시장 평가금: ${self.positions_market_value}\n" +
+            f"수수료를 제외한 시장 평가금: ${self.positions_market_value_excluding_fees}\n" +
+            f"손익금: ${self.profit_amount}, 수수료제외손익금: ${self.profit_amount_excluding_fees}\n"
+        )
