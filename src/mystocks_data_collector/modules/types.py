@@ -1,18 +1,23 @@
 from dataclasses import dataclass
 import datetime
 from enum import auto
-from typing import Dict, Tuple, TypeAlias
-from uuid import UUID, uuid4
+from typing import Dict, List, Tuple, TypeAlias
+from uuid import UUID
 
 
-from mystocks_data_collector.modules.client.tossinvest_api.responses import TossInvestBuyingPowerResponse, TossInvestCurrentStockPriceResponse, TossInvestOrdersResponse, TossInvestStocksResponse
+from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
+from mystocks_data_collector.modules.client.tossinvest_api.responses import (
+    TossInvestBuyingPowerResponse, 
+    TossInvestCurrentStockPriceResponse, 
+    TossInvestStocksResponse
+)
 
 
 ApiRepsonses:  TypeAlias = Tuple[
     Dict[str, TossInvestCurrentStockPriceResponse],
     TossInvestBuyingPowerResponse,
     TossInvestStocksResponse,
-    TossInvestOrdersResponse,
+    List[TossInvestOrder],
 ]
 
 
@@ -82,6 +87,7 @@ class Transaction:
     def to_str(self):
         type_korean = "매도" if self.type == TransactionType.SELL else "매수"
         return (
+            f"체결날짜: {self.filled_at}",
             f"티커명: {self.ticker}",
             f"${self.filled_amount} ({self.order_quanity}주) {type_korean}",
             f"평단가: ${self.avg_price}"   

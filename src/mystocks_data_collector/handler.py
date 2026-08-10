@@ -1,11 +1,12 @@
 import asyncio
+from datetime import timedelta
 import logging
 from typing import Any, Dict, Tuple
 
 from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.tossinvest_api.client import TossInvestAPI
 from mystocks_data_collector.modules.exc import APIResponseError
-from mystocks_data_collector.modules.logics.collection import get_benchmark_stocks_current_prices
+from mystocks_data_collector.modules.logics.collection import get_benchmark_stocks_current_prices, get_orders_full
 from mystocks_data_collector.modules.logics.transform import create_portpolio_by_api_repsonse
 from mystocks_data_collector.modules.types import ApiRepsonses
 from mystocks_data_collector.modules.utils import now_korea
@@ -52,7 +53,7 @@ async def collect_data_from_tossinvest() -> Tuple[str | None, ApiRepsonses | Non
                 get_benchmark_stocks_current_prices(api, list(Config.PEER_STOCKS.keys())),
                 api.get_buying_power(),
                 api.get_stocks(),
-                api.get_orders(from_date=today.date(), to_date=today.date())
+                get_orders_full(api, from_date=today.date(), to_date=today.date())
             )
 
     except APIResponseError as e:

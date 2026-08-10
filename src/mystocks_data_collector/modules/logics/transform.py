@@ -1,7 +1,8 @@
-from typing import Dict
+from typing import Dict, List
 from uuid import UUID, uuid4
 
 from mystocks_data_collector.config import Config
+from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
 from mystocks_data_collector.modules.client.tossinvest_api.responses import (
     TossInvestBuyingPowerResponse,
     TossInvestCurrentStockPriceResponse,
@@ -16,7 +17,7 @@ def create_portpolio_by_api_repsonse(
         res_benchmark_prices: Dict[str, TossInvestCurrentStockPriceResponse],
         res_buying_power: TossInvestBuyingPowerResponse,
         res_stocks: TossInvestStocksResponse,
-        res_orders: TossInvestOrdersResponse,
+        res_orders: List[TossInvestOrder],
 ):
     new_portpolio_id: UUID = uuid4()
     today = now_korea()
@@ -69,5 +70,5 @@ def create_portpolio_by_api_repsonse(
             filled_at=item.execution.filled_at,
             log_date=today,
         )
-        for item in res_orders.orders
+        for item in res_orders
     ]
