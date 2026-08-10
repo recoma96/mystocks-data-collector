@@ -11,6 +11,7 @@ dependencies = [
     "boto3>=1.43.63",
     "httpx>=0.28.1",
     "pandas>=3.0.5",
+    "pandas-market-calendars>=5.4.0",
     "pyarrow>=25.0.0",
     "pydantic>=2.13.4",
     "types-boto3[essential]>=1.43.63",

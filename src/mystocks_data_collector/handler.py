@@ -13,7 +13,7 @@ from mystocks_data_collector.modules.logics.transform import create_portpolio_by
 from mystocks_data_collector.modules.logics.upload import DataUpdater
 from mystocks_data_collector.modules.storage import S3Storage
 from mystocks_data_collector.modules.types import ApiRepsonses, BenchmarkPosition, PortpolioSnapshot, Position, Transaction
-from mystocks_data_collector.modules.utils import now_korea
+from mystocks_data_collector.modules.utils import is_us_trading_session, now_korea
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,10 @@ def _set_logger():
 
 
 async def main():
-    # TODO 주말 및 휴장일 제외 로직 필요
+    now = now_korea()
+
+    if not is_us_trading_session(now):
+        return create_response("휴장일 또는 주말이라 건너뜁니다", 200)
 
     s3_storage = S3Storage()
 
@@ -47,7 +50,7 @@ async def main():
     benchmarks, positions, transactions, portpolio = create_portpolio_by_api_repsonse(*api_responses)
 
     update_datas(
-        now_korea(),
+        now,
         s3_storage=s3_storage,
         portpolio=portpolio,
         benchmarks=benchmarks,
