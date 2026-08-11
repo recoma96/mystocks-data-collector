@@ -22,7 +22,7 @@ async def collect_data_from_tossinvest() -> Tuple[str | None, ApiResponses | Non
         async with TossInvestAPI() as api:
             await _get_tossinvest_access_token(api)
             return None, await asyncio.gather(
-                get_benchmark_stocks_current_prices(api, list(Config.PEER_STOCKS.keys())),
+                get_benchmark_stocks_current_prices(api, list(Config.peer_stocks().keys())),
                 api.get_buying_power(),
                 api.get_stocks(),
             )
