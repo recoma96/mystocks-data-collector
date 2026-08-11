@@ -102,6 +102,8 @@ class TossInvestAPI(APIClient):
             limit: int = 20,
             cursor: str | None = None,
     ) -> TossInvestOrdersResponse:
+        """토스증권 주문건 조회 (단일페이지)
+        """
         self._put_account_number_into_header(account_number)
 
         params = {
