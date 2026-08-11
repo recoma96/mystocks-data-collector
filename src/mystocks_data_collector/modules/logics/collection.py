@@ -36,7 +36,7 @@ async def get_orders_full(
         }
 
         if current_cursor:
-            kwargs["cursor"] = current_cursor,
+            kwargs["cursor"] = current_cursor
 
         response = await api.get_orders(**kwargs)
         orders.extend(response.orders)
