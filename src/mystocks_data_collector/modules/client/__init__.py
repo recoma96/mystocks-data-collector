@@ -1,7 +1,7 @@
 import logging
 import time
 from abc import ABCMeta
-from typing import Any, Dict
+from typing import Any, Dict, Self
 
 import httpx
 
@@ -96,7 +96,7 @@ class APIClient(metaclass=ABCMeta):
     async def close(self) -> None:
         await self._client.aclose()
 
-    async def __aenter__(self) -> "APIClient":
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, *_exc_info: object) -> None:

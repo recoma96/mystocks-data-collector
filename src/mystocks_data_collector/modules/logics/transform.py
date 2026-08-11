@@ -16,7 +16,7 @@ def create_portfolio_by_api_response(
         res_benchmark_prices: Dict[str, TossInvestCurrentStockPriceResponse],
         res_buying_power: TossInvestBuyingPowerResponse,
         res_stocks: TossInvestStocksResponse,
-) -> Tuple[BenchmarkPosition, List[Position], PortfolioSnapshot]:
+) -> Tuple[List[BenchmarkPosition], List[Position], PortfolioSnapshot]:
     new_portfolio_id = str(uuid4())
     today = now_korea()
 

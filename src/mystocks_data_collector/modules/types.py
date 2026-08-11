@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import datetime
+from datetime import datetime
 from enum import auto
 from typing import Dict, Tuple, TypeAlias
 

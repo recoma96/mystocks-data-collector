@@ -2,12 +2,23 @@ import os
 import logging
 
 
+def _require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"필수 환경변수 '{name}'가 설정되지 않았습니다. .env 파일을 확인하세요.")
+    return value
+
+
 class Config:
-    S3_BUCKET = os.getenv("S3_BUCKET")
     AWS_REGION_NAME = os.getenv("AWS_REGION_NAME", "ap-northeast-2")
     TOSSINVEST_CLIENT_ID = os.getenv("TOSSINVEST_CLIENT_ID")
     TOSSINVEST_CLIENT_SECRET = os.getenv("TOSSINVEST_CLIENT_SECRET")
-    LOGGING_LEVEL = { "INFO": logging.INFO, "DEBUG": logging.DEBUG }.get(os.getenv("LOGGING_LEVEL", "INFO"))
+    LOGGING_LEVEL = { "INFO": logging.INFO, "DEBUG": logging.DEBUG }.get(os.getenv("LOGGING_LEVEL", "INFO"), logging.INFO)
+
+    @classmethod
+    def s3_bucket(cls) -> str:
+        """S3 버킷명. 실제 사용 시점에만 검증됨"""
+        return _require_env("S3_BUCKET")
 
     @classmethod
     def peer_stocks(cls) -> dict[str, str]:
