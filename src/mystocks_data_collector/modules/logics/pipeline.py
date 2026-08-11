@@ -66,6 +66,10 @@ def upload_transactions(
     uploader.update_transaction(transactions, target_date)
 
 
+def transactions_already_uploaded(s3_storage: S3Storage, t: date) -> bool:
+    return DataUpdater(s3_storage).exists("transactions", t)
+
+
 async def _get_tossinvest_access_token(api: TossInvestAPI):
     res = await api.get_oauth2_access_token()
     access_token = res.access_token

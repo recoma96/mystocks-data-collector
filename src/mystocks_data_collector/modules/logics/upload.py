@@ -39,9 +39,7 @@ class DataUpdater:
         if len(transactions) < 1:
             return
 
-        df  = self.download(TOPIC, yesterday)
-
-        if df is not None:
+        if self.exists(TOPIC, yesterday):
             # 이미 파일이 있음 -> 어제자 트랜잭션을 이미 전부 업로드했음
             # 별도의 업데이트 필요 X
             return
@@ -51,6 +49,9 @@ class DataUpdater:
 
         key = self._get_key(yesterday, TOPIC)
         self.s3_storage.put_bytes(key, self._pandas_to_bytes(df))
+
+    def exists(self, topic: str, t: date) -> bool:
+        return self.s3_storage.exists(self._get_key(t, topic))
 
     def download(self, topic: str, t: date) -> pd.DataFrame | None:
         key = self._get_key(t, topic)

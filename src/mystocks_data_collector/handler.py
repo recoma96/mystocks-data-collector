@@ -6,6 +6,7 @@ from typing import Any, Dict
 from mystocks_data_collector.modules.logics.pipeline import (
     collect_data_from_tossinvest,
     collect_orders_from_tossinvest,
+    transactions_already_uploaded,
     update_datas,
     upload_transactions
 )
@@ -68,8 +69,12 @@ async def update_transactions(now: datetime):
     """어제자 매수/매도 주문건 업데이트
     """
     yesterday = now - timedelta(days=1)
-    orders = await collect_orders_from_tossinvest(yesterday, yesterday)
     s3_storage = S3Storage()
+
+    if transactions_already_uploaded(s3_storage, yesterday.date()):
+        return
+
+    orders = await collect_orders_from_tossinvest(yesterday, yesterday)
 
     await write_orders_snapshots_to_s3(s3_storage, orders)
 
