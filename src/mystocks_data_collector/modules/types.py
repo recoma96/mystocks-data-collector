@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 import datetime
 from enum import auto
-from typing import Dict, List, Tuple, TypeAlias
+from typing import Dict, Tuple, TypeAlias
 
 
-from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
 from mystocks_data_collector.modules.client.tossinvest_api.responses import (
     TossInvestBuyingPowerResponse, 
     TossInvestCurrentStockPriceResponse, 
@@ -16,7 +15,6 @@ ApiRepsonses:  TypeAlias = Tuple[
     Dict[str, TossInvestCurrentStockPriceResponse],
     TossInvestBuyingPowerResponse,
     TossInvestStocksResponse,
-    List[TossInvestOrder],
 ]
 
 
@@ -72,7 +70,6 @@ class Position:
 @dataclass
 class Transaction:
     id: str
-    portpolio_id: str           # 포트폴리오 UUID
     order_id: str               # 토스에서 제공하는 ID
     ticker: str                 # 티커명
     type: TransactionType       # 판매/구매

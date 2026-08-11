@@ -16,8 +16,7 @@ def create_portpolio_by_api_repsonse(
         res_benchmark_prices: Dict[str, TossInvestCurrentStockPriceResponse],
         res_buying_power: TossInvestBuyingPowerResponse,
         res_stocks: TossInvestStocksResponse,
-        res_orders: List[TossInvestOrder],
-) -> Tuple[BenchmarkPosition, List[Position], List[Transaction], PortpolioSnapshot]:
+) -> Tuple[BenchmarkPosition, List[Position], PortpolioSnapshot]:
     new_portpolio_id = str(uuid4())
     today = now_korea()
 
@@ -55,23 +54,6 @@ def create_portpolio_by_api_repsonse(
         for item in res_stocks.items
     ]
 
-    transactions = [
-        Transaction(
-            id=str(uuid4()),
-            portpolio_id=new_portpolio_id,
-            order_id=item.order_id,
-            ticker=item.symbol,
-            type=TransactionType.BUY if item.side == "BUY" else TransactionType.SELL,
-            order_amount=item.order_amount,
-            order_quanity=item.quantity,
-            filled_amount=item.execution.filled_amount,
-            avg_price=item.execution.average_filled_price,
-            filled_at=item.execution.filled_at,
-            log_date=today,
-        )
-        for item in res_orders
-    ]
-
     portpolio_snapshot = PortpolioSnapshot(
         id=new_portpolio_id,
         total_value=res_buying_power.cash_buying_power + res_stocks.market_value.amount_after_cost.usd,
@@ -85,4 +67,23 @@ def create_portpolio_by_api_repsonse(
         log_date=today,
     )
 
-    return benchmark_positions, positions, transactions, portpolio_snapshot
+    return benchmark_positions, positions, portpolio_snapshot
+
+
+def create_transactions_by_api_responses(orders: List[TossInvestOrder]) -> List[Transaction]:
+    transactions = [
+        Transaction(
+            id=str(uuid4()),
+            order_id=item.order_id,
+            ticker=item.symbol,
+            type=TransactionType.BUY if item.side == "BUY" else TransactionType.SELL,
+            order_amount=item.order_amount,
+            order_quanity=item.quantity,
+            filled_amount=item.execution.filled_amount,
+            avg_price=item.execution.average_filled_price,
+            filled_at=item.execution.filled_at,
+            log_date=now_korea(),
+        )
+        for item in orders
+    ]
+    return transactions
