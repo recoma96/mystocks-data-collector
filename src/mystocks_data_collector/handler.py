@@ -1,19 +1,20 @@
 import asyncio
 import logging
-from typing import Any, Dict, Tuple
+from datetime import datetime, timedelta
+from typing import Any, Dict
 
-from mystocks_data_collector.config import Config
-from mystocks_data_collector.modules.client.tossinvest_api.client import TossInvestAPI
-from mystocks_data_collector.modules.exc import APIResponseError
-from mystocks_data_collector.modules.logics.collection import get_benchmark_stocks_current_prices, get_orders_full
-from mystocks_data_collector.modules.logics.storage import write_snapshots_to_s3
-from mystocks_data_collector.modules.logics.transform import create_portpolio_by_api_repsonse
+from mystocks_data_collector.modules.logics.pipeline import (
+    collect_data_from_tossinvest,
+    collect_orders_from_tossinvest,
+    transactions_already_uploaded,
+    update_datas,
+    upload_transactions
+)
+from mystocks_data_collector.modules.logics.storage import write_orders_snapshots_to_s3, write_snapshots_to_s3
+from mystocks_data_collector.modules.logics.transform import create_portpolio_by_api_repsonse, create_transactions_by_api_responses
 from mystocks_data_collector.modules.storage import S3Storage
-from mystocks_data_collector.modules.types import ApiRepsonses
-from mystocks_data_collector.modules.utils import now_korea
+from mystocks_data_collector.modules.utils import is_us_trading_session, now_korea
 
-
-logger = logging.getLogger(__name__)
 
 def handler(event, context):
     _set_before_handler()
@@ -31,7 +32,19 @@ def _set_logger():
 
 
 async def main():
-    # TODO 주말 및 휴장일 제외 로직 필요
+    now = now_korea()
+
+    await update_transactions(now)
+    await update_status(now)
+
+    return create_response("Success", 200)
+
+
+async def update_status(now: datetime):
+    """현재 포트폴리오 및 비교군 실시간 상태 데이터 업데이트
+    """
+    if not is_us_trading_session(now):
+        return create_response("휴장일 또는 주말이라 건너뜁니다", 200)
 
     s3_storage = S3Storage()
 
@@ -41,29 +54,33 @@ async def main():
 
     await write_snapshots_to_s3(s3_storage, api_responses)
 
-    benchmarks, positions, transactions, portpolio = create_portpolio_by_api_repsonse(*api_responses)
+    benchmarks, positions, portpolio = create_portpolio_by_api_repsonse(*api_responses)
 
-    return create_response("Success", 200)
+    update_datas(
+        now,
+        s3_storage=s3_storage,
+        portpolio=portpolio,
+        benchmarks=benchmarks,
+        positions=positions,
+    )
 
 
-async def collect_data_from_tossinvest() -> Tuple[str | None, ApiRepsonses | None]:
-    today = now_korea()
-    try:
-        async with TossInvestAPI() as api:
-            res = await api.get_oauth2_access_token()
-            access_token = res.access_token
-            api.update_headers({"Authorization": f"Bearer {access_token}"})
+async def update_transactions(now: datetime):
+    """어제자 매수/매도 주문건 업데이트
+    """
+    yesterday = now - timedelta(days=1)
+    s3_storage = S3Storage()
 
-            return None, await asyncio.gather(
-                get_benchmark_stocks_current_prices(api, list(Config.PEER_STOCKS.keys())),
-                api.get_buying_power(),
-                api.get_stocks(),
-                get_orders_full(api, from_date=today.date(), to_date=today.date())
-            )
+    if transactions_already_uploaded(s3_storage, yesterday.date()):
+        return
 
-    except APIResponseError as e:
-        logger.exception("토스 API 요청 오류 응답: {status=%s}", e.status_code)
-        return (e.response_body, None)
+    orders = await collect_orders_from_tossinvest(yesterday, yesterday)
+
+    await write_orders_snapshots_to_s3(s3_storage, orders)
+
+    transactions = create_transactions_by_api_responses(orders)
+
+    upload_transactions(now, s3_storage, transactions)
 
 
 def create_response(error: str, code: int = 500) -> Dict[str, Any]:

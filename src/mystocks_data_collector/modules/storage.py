@@ -2,6 +2,7 @@ import json
 from typing import Any
 
 import boto3
+from botocore.exceptions import ClientError
 from types_boto3_s3.client import S3Client
 
 from mystocks_data_collector.config import Config
@@ -17,6 +18,27 @@ class S3Storage:
 
     def put_object(self, key: str, body: str) -> None:
         self._s3.put_object(Bucket=Config.S3_BUCKET, Key=key, Body=body.encode("utf-8"))
+
+    def put_bytes(self, key: str, body: bytes) -> None:
+        self._s3.put_object(Bucket=Config.S3_BUCKET, Key=key, Body=body)
+
+    def get_object(self, key: str) -> bytes | None:
+        try:
+            response = self._s3.get_object(Bucket=Config.S3_BUCKET, Key=key)
+        except self._s3.exceptions.NoSuchKey:
+            return None
+
+        return response["Body"].read()
+
+    def exists(self, key: str) -> bool:
+        try:
+            self._s3.head_object(Bucket=Config.S3_BUCKET, Key=key)
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "404":
+                return False
+            raise
+
+        return True
 
     def write_snapshot(self, topic: str, body: Any) -> None:
         # PATH: {topic}/{YYYY}/{MM}/{DD}/snapshot-{HH}-{mm}-{ss}-{millisecond}.json

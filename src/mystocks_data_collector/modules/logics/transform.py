@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
@@ -16,14 +16,13 @@ def create_portpolio_by_api_repsonse(
         res_benchmark_prices: Dict[str, TossInvestCurrentStockPriceResponse],
         res_buying_power: TossInvestBuyingPowerResponse,
         res_stocks: TossInvestStocksResponse,
-        res_orders: List[TossInvestOrder],
-) -> Tuple[List[BenchmarkPosition], List[Position], List[Transaction], PortpolioSnapshot]:
-    new_portpolio_id: UUID = uuid4()
+) -> Tuple[BenchmarkPosition, List[Position], PortpolioSnapshot]:
+    new_portpolio_id = str(uuid4())
     today = now_korea()
 
     benchmark_positions = [
         BenchmarkPosition(
-            id=uuid4(),
+            id=str(uuid4()),
             portpolio_id=new_portpolio_id,
             name=Config.PEER_STOCKS[ticker],
             ticker=ticker,
@@ -36,7 +35,7 @@ def create_portpolio_by_api_repsonse(
 
     positions = [
         Position(
-            id=uuid4(),
+            id=str(uuid4()),
             portpolio_id=new_portpolio_id,
             name=item.name,
             ticker=item.symbol,
@@ -55,23 +54,6 @@ def create_portpolio_by_api_repsonse(
         for item in res_stocks.items
     ]
 
-    transactions = [
-        Transaction(
-            id=uuid4(),
-            portpolio_id=new_portpolio_id,
-            order_id=item.order_id,
-            ticker=item.symbol,
-            type=TransactionType.BUY if item.side == "BUY" else TransactionType.SELL,
-            order_amount=item.order_amount,
-            order_quanity=item.quantity,
-            filled_amount=item.execution.filled_amount,
-            avg_price=item.execution.average_filled_price,
-            filled_at=item.execution.filled_at,
-            log_date=today,
-        )
-        for item in res_orders
-    ]
-
     portpolio_snapshot = PortpolioSnapshot(
         id=new_portpolio_id,
         total_value=res_buying_power.cash_buying_power + res_stocks.market_value.amount_after_cost.usd,
@@ -85,4 +67,23 @@ def create_portpolio_by_api_repsonse(
         log_date=today,
     )
 
-    return benchmark_positions, positions, transactions, portpolio_snapshot
+    return benchmark_positions, positions, portpolio_snapshot
+
+
+def create_transactions_by_api_responses(orders: List[TossInvestOrder]) -> List[Transaction]:
+    transactions = [
+        Transaction(
+            id=str(uuid4()),
+            order_id=item.order_id,
+            ticker=item.symbol,
+            type=TransactionType.BUY if item.side == "BUY" else TransactionType.SELL,
+            order_amount=item.order_amount,
+            order_quanity=item.quantity,
+            filled_amount=item.execution.filled_amount,
+            avg_price=item.execution.average_filled_price,
+            filled_at=item.execution.filled_at,
+            log_date=now_korea(),
+        )
+        for item in orders
+    ]
+    return transactions

@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 import datetime
 from enum import auto
-from typing import Dict, List, Tuple, TypeAlias
-from uuid import UUID
+from typing import Dict, Tuple, TypeAlias
 
 
-from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
+from mystocks_data_collector.modules.client.enum import UpperCaseStrEnum
 from mystocks_data_collector.modules.client.tossinvest_api.responses import (
     TossInvestBuyingPowerResponse, 
     TossInvestCurrentStockPriceResponse, 
@@ -17,11 +16,10 @@ ApiRepsonses:  TypeAlias = Tuple[
     Dict[str, TossInvestCurrentStockPriceResponse],
     TossInvestBuyingPowerResponse,
     TossInvestStocksResponse,
-    List[TossInvestOrder],
 ]
 
 
-class TransactionType:
+class TransactionType(UpperCaseStrEnum):
     BUY = auto()
     SELL = auto()
 
@@ -30,8 +28,8 @@ class TransactionType:
 class BenchmarkPosition:
     """수익 비교용 비교종목
     """
-    id: UUID
-    portpolio_id: UUID      # 포트폴리오 UID
+    id: str
+    portpolio_id: str      # 포트폴리오 UID
     name: str               # 종목명
     ticker: str             # 티커명
     current_price: float     # 현재가
@@ -42,8 +40,8 @@ class BenchmarkPosition:
 class Position:
     """보유 종목
     """
-    id: UUID
-    portpolio_id: UUID                  # 포트폴리오 UUID
+    id: str
+    portpolio_id: str                  # 포트폴리오 UUID
     name: str                           # 종목명
     ticker: str                         # 티커명
     avg_purchase_price: float           # 평단가
@@ -72,8 +70,7 @@ class Position:
 
 @dataclass
 class Transaction:
-    id: UUID
-    portpolio_id: int           # 포트폴리오 UUID
+    id: str
     order_id: str               # 토스에서 제공하는 ID
     ticker: str                 # 티커명
     type: TransactionType       # 판매/구매
@@ -99,7 +96,7 @@ class PortpolioSnapshot:
     """
     보유 투자금 및 현금 상태
     """
-    id: UUID
+    id: str
     total_value: float                              # 현재 총 금액 (보유현금 + 수수료를 제외한 평가금액)
     total_value_basis: float                        # 현재 총 원 금액 (보유현금 + 투자원금)
     cash_balance: float                             # 보유 현금

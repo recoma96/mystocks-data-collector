@@ -34,8 +34,8 @@ class TossInvestOrder(BaseModel):
     side: TossInvestOrderSide
     symbol: str
     time_in_force: str = Field(alias="timeInForce")
-    canceled_at: datetime | None = Field("canceledAt")
-    order_amount: float | None = Field("orderAmount")
+    canceled_at: datetime | None = Field(alias="canceledAt")
+    order_amount: float | None = Field(alias="orderAmount")
     price: float | None
 
 
@@ -45,5 +45,5 @@ class TossInvestExecution(BaseModel):
     filled_amount: float = Field(alias="filledAmount")
     filled_at: datetime = Field(alias="filledAt")
     filled_quantity: float = Field(alias="filledQuantity")
-    settlement_date: datetime = Field("settlementDate")
+    settlement_date: datetime | None = Field(alias="settlementDate")
     tax: float
