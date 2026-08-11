@@ -3,12 +3,12 @@ from typing import List
 
 from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
 from mystocks_data_collector.modules.storage import S3Storage
-from mystocks_data_collector.modules.types import ApiRepsonses
+from mystocks_data_collector.modules.types import ApiResponses
 
 
 async def write_snapshots_to_s3(
         s3_storage: S3Storage,
-        api_responses: ApiRepsonses
+        api_responses: ApiResponses
 ) -> None:
     res_benchmark_prices, res_buying_power, res_stocks = api_responses
 

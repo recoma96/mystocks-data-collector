@@ -11,7 +11,7 @@ from mystocks_data_collector.modules.logics.pipeline import (
     upload_transactions
 )
 from mystocks_data_collector.modules.logics.storage import write_orders_snapshots_to_s3, write_snapshots_to_s3
-from mystocks_data_collector.modules.logics.transform import create_portpolio_by_api_repsonse, create_transactions_by_api_responses
+from mystocks_data_collector.modules.logics.transform import create_portfolio_by_api_response, create_transactions_by_api_responses
 from mystocks_data_collector.modules.storage import S3Storage
 from mystocks_data_collector.modules.utils import is_us_trading_session, now_korea
 
@@ -54,12 +54,12 @@ async def update_status(now: datetime):
 
     await write_snapshots_to_s3(s3_storage, api_responses)
 
-    benchmarks, positions, portpolio = create_portpolio_by_api_repsonse(*api_responses)
+    benchmarks, positions, portfolio = create_portfolio_by_api_response(*api_responses)
 
     update_datas(
         now,
         s3_storage=s3_storage,
-        portpolio=portpolio,
+        portfolio=portfolio,
         benchmarks=benchmarks,
         positions=positions,
     )

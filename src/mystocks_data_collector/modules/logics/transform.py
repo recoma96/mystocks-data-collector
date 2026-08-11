@@ -8,22 +8,22 @@ from mystocks_data_collector.modules.client.tossinvest_api.responses import (
     TossInvestCurrentStockPriceResponse,
     TossInvestStocksResponse
 )
-from mystocks_data_collector.modules.types import BenchmarkPosition, PortpolioSnapshot, Position, Transaction, TransactionType
+from mystocks_data_collector.modules.types import BenchmarkPosition, PortfolioSnapshot, Position, Transaction, TransactionType
 from mystocks_data_collector.modules.utils import now_korea
 
 
-def create_portpolio_by_api_repsonse(
+def create_portfolio_by_api_response(
         res_benchmark_prices: Dict[str, TossInvestCurrentStockPriceResponse],
         res_buying_power: TossInvestBuyingPowerResponse,
         res_stocks: TossInvestStocksResponse,
-) -> Tuple[BenchmarkPosition, List[Position], PortpolioSnapshot]:
-    new_portpolio_id = str(uuid4())
+) -> Tuple[BenchmarkPosition, List[Position], PortfolioSnapshot]:
+    new_portfolio_id = str(uuid4())
     today = now_korea()
 
     benchmark_positions = [
         BenchmarkPosition(
             id=str(uuid4()),
-            portpolio_id=new_portpolio_id,
+            portfolio_id=new_portfolio_id,
             name=Config.PEER_STOCKS[ticker],
             ticker=ticker,
             current_price=item.current_price,
@@ -36,12 +36,12 @@ def create_portpolio_by_api_repsonse(
     positions = [
         Position(
             id=str(uuid4()),
-            portpolio_id=new_portpolio_id,
+            portfolio_id=new_portfolio_id,
             name=item.name,
             ticker=item.symbol,
             avg_purchase_price=item.average_purchase_price,
             current_price=item.last_price,
-            quanity=item.quantity,
+            quantity=item.quantity,
             cost_basis=item.market_value.purchase_amount,
             market_value=item.market_value.amount,
             market_value_excluding_fees=item.market_value.amount_after_cost,
@@ -54,8 +54,8 @@ def create_portpolio_by_api_repsonse(
         for item in res_stocks.items
     ]
 
-    portpolio_snapshot = PortpolioSnapshot(
-        id=new_portpolio_id,
+    portfolio_snapshot = PortfolioSnapshot(
+        id=new_portfolio_id,
         total_value=res_buying_power.cash_buying_power + res_stocks.market_value.amount_after_cost.usd,
         total_value_basis=res_buying_power.cash_buying_power + res_stocks.total_purchase_amount.usd,
         cash_balance=res_buying_power.cash_buying_power,
@@ -67,7 +67,7 @@ def create_portpolio_by_api_repsonse(
         log_date=today,
     )
 
-    return benchmark_positions, positions, portpolio_snapshot
+    return benchmark_positions, positions, portfolio_snapshot
 
 
 def create_transactions_by_api_responses(orders: List[TossInvestOrder]) -> List[Transaction]:
@@ -78,7 +78,7 @@ def create_transactions_by_api_responses(orders: List[TossInvestOrder]) -> List[
             ticker=item.symbol,
             type=TransactionType.BUY if item.side == "BUY" else TransactionType.SELL,
             order_amount=item.order_amount,
-            order_quanity=item.quantity,
+            order_quantity=item.quantity,
             filled_amount=item.execution.filled_amount,
             avg_price=item.execution.average_filled_price,
             filled_at=item.execution.filled_at,
