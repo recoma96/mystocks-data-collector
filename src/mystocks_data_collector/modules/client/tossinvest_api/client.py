@@ -100,7 +100,7 @@ class TossInvestAPI(APIClient):
             account_number: int = 1,
             status: TossInvestOrderStatus = TossInvestOrderStatus.CLOSED,
             limit: int = 20,
-            cursor: str = None,
+            cursor: str | None = None,
     ) -> TossInvestOrdersResponse:
         self._put_account_number_into_header(account_number)
 
