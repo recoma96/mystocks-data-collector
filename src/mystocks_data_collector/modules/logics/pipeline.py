@@ -11,13 +11,13 @@ from mystocks_data_collector.modules.exc import APIResponseError
 from mystocks_data_collector.modules.logics.collection import get_benchmark_stocks_current_prices, get_orders_full
 from mystocks_data_collector.modules.logics.upload import DataUpdater
 from mystocks_data_collector.modules.storage import S3Storage
-from mystocks_data_collector.modules.types import ApiRepsonses, BenchmarkPosition, PortpolioSnapshot, Position, Transaction
+from mystocks_data_collector.modules.types import ApiResponses, BenchmarkPosition, PortfolioSnapshot, Position, Transaction
 
 
 logger = logging.getLogger(__name__)
 
 
-async def collect_data_from_tossinvest() -> Tuple[str | None, ApiRepsonses | None]:
+async def collect_data_from_tossinvest() -> Tuple[str | None, ApiResponses | None]:
     try:
         async with TossInvestAPI() as api:
             await _get_tossinvest_access_token(api)
@@ -45,14 +45,14 @@ async def collect_orders_from_tossinvest(from_date: date, to_date: date) -> List
 def update_datas(
         today: datetime,
         s3_storage: S3Storage,
-        portpolio: PortpolioSnapshot,
+        portfolio: PortfolioSnapshot,
         benchmarks: List[BenchmarkPosition],
         positions: List[Position],
 ):
     uploader = DataUpdater(s3_storage)
     today_date = today.date()
 
-    uploader.update_topic("portpolio", [asdict(portpolio)], today_date)
+    uploader.update_topic("portfolio", [asdict(portfolio)], today_date)
     uploader.update_topic("benchmarks",[asdict(data) for data in benchmarks], today_date)
     uploader.update_topic("positions", [asdict(data) for data in positions], today_date)
 
