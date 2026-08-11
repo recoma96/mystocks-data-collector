@@ -24,21 +24,15 @@ async def get_orders_full(
         status: TossInvestOrderStatus = TossInvestOrderStatus.CLOSED,
         limit: int = 20,
 ) -> List[TossInvestOrder]:
-    current_cursor, cnt = None, 0
+    current_cursor: str | None = None
+    cnt = 0
     orders: List[TossInvestOrder] = []
 
     while (cnt == 0 or current_cursor is not None):
-        kwargs = {
-            "from_date": from_date,
-            "to_date": to_date,
-            "status": status,
-            "limit": limit,
-        }
+        response = await api.get_orders(
+            from_date=from_date, to_date=to_date, status=status, limit=limit, cursor=current_cursor
+        )
 
-        if current_cursor:
-            kwargs["cursor"] = current_cursor
-
-        response = await api.get_orders(**kwargs)
         orders.extend(response.orders)
 
         current_cursor = response.next_cursor

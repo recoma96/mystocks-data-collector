@@ -17,3 +17,7 @@ def is_us_trading_session(now: datetime) -> bool:
     trading_date = (now - timedelta(hours=9)).date()
     schedule = _NYSE.schedule(start_date=trading_date, end_date=trading_date)
     return not schedule.empty
+
+
+def or_zero(value: float | None) -> float:
+    return value if value is not None else 0.0

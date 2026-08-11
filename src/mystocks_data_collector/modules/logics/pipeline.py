@@ -32,11 +32,11 @@ async def collect_data_from_tossinvest() -> Tuple[str | None, ApiResponses | Non
         return (e.response_body, None)
 
 
-async def collect_orders_from_tossinvest(from_date: date, to_date: date) -> List[TossInvestOrder]:
+async def collect_orders_from_tossinvest(from_date: date, to_date: date) -> Tuple[str | None, List[TossInvestOrder] | None]:
     try:
         async with TossInvestAPI() as api:
             await _get_tossinvest_access_token(api)
-            return await get_orders_full(api, from_date=from_date, to_date=to_date)
+            return None, await get_orders_full(api, from_date=from_date, to_date=to_date)
     except APIResponseError as e:
         logger.exception("토스 API 요청 오류 응답: {status=%s}", e.status_code)
         return (e.response_body, None)

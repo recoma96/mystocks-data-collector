@@ -17,14 +17,14 @@ class S3Storage:
         self._s3 = boto3.client("s3", region_name=Config.AWS_REGION_NAME)
 
     def put_object(self, key: str, body: str) -> None:
-        self._s3.put_object(Bucket=Config.S3_BUCKET, Key=key, Body=body.encode("utf-8"))
+        self._s3.put_object(Bucket=Config.s3_bucket(), Key=key, Body=body.encode("utf-8"))
 
     def put_bytes(self, key: str, body: bytes) -> None:
-        self._s3.put_object(Bucket=Config.S3_BUCKET, Key=key, Body=body)
+        self._s3.put_object(Bucket=Config.s3_bucket(), Key=key, Body=body)
 
     def get_object(self, key: str) -> bytes | None:
         try:
-            response = self._s3.get_object(Bucket=Config.S3_BUCKET, Key=key)
+            response = self._s3.get_object(Bucket=Config.s3_bucket(), Key=key)
         except self._s3.exceptions.NoSuchKey:
             return None
 
@@ -32,7 +32,7 @@ class S3Storage:
 
     def exists(self, key: str) -> bool:
         try:
-            self._s3.head_object(Bucket=Config.S3_BUCKET, Key=key)
+            self._s3.head_object(Bucket=Config.s3_bucket(), Key=key)
         except ClientError as e:
             if e.response["Error"]["Code"] == "404":
                 return False

@@ -9,14 +9,14 @@ from mystocks_data_collector.modules.client.tossinvest_api.responses import (
     TossInvestStocksResponse
 )
 from mystocks_data_collector.modules.types import BenchmarkPosition, PortfolioSnapshot, Position, Transaction, TransactionType
-from mystocks_data_collector.modules.utils import now_korea
+from mystocks_data_collector.modules.utils import now_korea, or_zero
 
 
 def create_portfolio_by_api_response(
         res_benchmark_prices: Dict[str, TossInvestCurrentStockPriceResponse],
         res_buying_power: TossInvestBuyingPowerResponse,
         res_stocks: TossInvestStocksResponse,
-) -> Tuple[BenchmarkPosition, List[Position], PortfolioSnapshot]:
+) -> Tuple[List[BenchmarkPosition], List[Position], PortfolioSnapshot]:
     new_portfolio_id = str(uuid4())
     today = now_korea()
 
@@ -56,14 +56,14 @@ def create_portfolio_by_api_response(
 
     portfolio_snapshot = PortfolioSnapshot(
         id=new_portfolio_id,
-        total_value=res_buying_power.cash_buying_power + res_stocks.market_value.amount_after_cost.usd,
-        total_value_basis=res_buying_power.cash_buying_power + res_stocks.total_purchase_amount.usd,
+        total_value=res_buying_power.cash_buying_power + or_zero(res_stocks.market_value.amount_after_cost.usd),
+        total_value_basis=res_buying_power.cash_buying_power + or_zero(res_stocks.total_purchase_amount.usd),
         cash_balance=res_buying_power.cash_buying_power,
-        positions_cost_basis=res_stocks.total_purchase_amount.usd,
-        positions_market_value=res_stocks.market_value.amount.usd,
-        positions_market_value_excluding_fees=res_stocks.market_value.amount_after_cost.usd,
-        profit_amount=res_stocks.profit_loss.amount.usd,
-        profit_amount_excluding_fees=res_stocks.profit_loss.amount_after_cost.usd,
+        positions_cost_basis=or_zero(res_stocks.total_purchase_amount.usd),
+        positions_market_value=or_zero(res_stocks.market_value.amount.usd),
+        positions_market_value_excluding_fees=or_zero(res_stocks.market_value.amount_after_cost.usd),
+        profit_amount=or_zero(res_stocks.profit_loss.amount.usd),
+        profit_amount_excluding_fees=or_zero(res_stocks.profit_loss.amount_after_cost.usd),
         log_date=today,
     )
 
@@ -77,7 +77,7 @@ def create_transactions_by_api_responses(orders: List[TossInvestOrder]) -> List[
             order_id=item.order_id,
             ticker=item.symbol,
             type=TransactionType.BUY if item.side == "BUY" else TransactionType.SELL,
-            order_amount=item.order_amount,
+            order_amount=or_zero(item.order_amount),
             order_quantity=item.quantity,
             filled_amount=item.execution.filled_amount,
             avg_price=item.execution.average_filled_price,
