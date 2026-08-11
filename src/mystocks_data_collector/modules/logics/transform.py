@@ -24,7 +24,7 @@ def create_portfolio_by_api_response(
         BenchmarkPosition(
             id=str(uuid4()),
             portfolio_id=new_portfolio_id,
-            name=Config.PEER_STOCKS[ticker],
+            name=Config.peer_stocks()[ticker],
             ticker=ticker,
             current_price=item.current_price,
             log_date=today,

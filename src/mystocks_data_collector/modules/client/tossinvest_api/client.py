@@ -5,7 +5,13 @@ from typing import Any, Dict, List
 from mystocks_data_collector.modules.client import APIClient
 from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.enum import UpperCaseStrEnum
-from mystocks_data_collector.modules.client.tossinvest_api.responses import *
+from mystocks_data_collector.modules.client.tossinvest_api.responses import (
+    TossInvestBuyingPowerResponse,
+    TossInvestCurrentStockPriceResponse,
+    TossInvestOauth2AccessTokenResponse,
+    TossInvestOrdersResponse,
+    TossInvestStocksResponse,
+)
 
 
 
@@ -94,8 +100,10 @@ class TossInvestAPI(APIClient):
             account_number: int = 1,
             status: TossInvestOrderStatus = TossInvestOrderStatus.CLOSED,
             limit: int = 20,
-            cursor: str = None,
+            cursor: str | None = None,
     ) -> TossInvestOrdersResponse:
+        """토스증권 주문건 조회 (단일페이지)
+        """
         self._put_account_number_into_header(account_number)
 
         params = {

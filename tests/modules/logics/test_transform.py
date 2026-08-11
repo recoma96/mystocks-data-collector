@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from mystocks_data_collector.config import Config
+import pytest
+
 from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
 from mystocks_data_collector.modules.client.tossinvest_api.responses import (
     TossInvestBuyingPowerResponse,
@@ -71,9 +72,11 @@ def _make_order(order_id: str, side: str) -> TossInvestOrder:
     })
 
 
-def test_create_portfolio_by_api_response_calculates_expected_values():
-    # Config.PEER_STOCKS는 환경변수(.env) 기반이라, 실제 설정된 티커 중 아무거나 하나를 씀
-    ticker = next(iter(Config.PEER_STOCKS))
+def test_create_portfolio_by_api_response_calculates_expected_values(monkeypatch: pytest.MonkeyPatch):
+    # 실제 .env에 의존하지 않도록, 이 테스트에서만 쓸 값을 직접 주입
+    monkeypatch.setenv("PEER_STOCKS_TICKER", "QQQ")
+    monkeypatch.setenv("PEER_STOCKS_NAME", "테스트벤치마크")
+    ticker = "QQQ"
     benchmark_prices = {
         ticker: TossInvestCurrentStockPriceResponse(
             ticker=ticker, current_price=500.0, current_time=datetime(2026, 8, 11, 10, 0)
