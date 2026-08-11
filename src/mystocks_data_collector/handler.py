@@ -76,9 +76,11 @@ async def update_transactions(now: datetime) -> Dict[str, Any] | None:
     if transactions_already_uploaded(s3_storage, yesterday.date()):
         return None
 
-    error_msg, orders = await collect_orders_from_tossinvest(yesterday, yesterday)
-    if error_msg:
-        return create_response(error_msg, 500)
+    error, orders = await collect_orders_from_tossinvest(yesterday, yesterday)
+    if error or orders is None:
+        if error is None:
+            error = "알 수 없는 에러"
+        return create_response(error, 500)
 
     await write_orders_snapshots_to_s3(s3_storage, orders)
 
