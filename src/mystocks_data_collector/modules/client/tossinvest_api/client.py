@@ -5,7 +5,13 @@ from typing import Any, Dict, List
 from mystocks_data_collector.modules.client import APIClient
 from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.enum import UpperCaseStrEnum
-from mystocks_data_collector.modules.client.tossinvest_api.responses import *
+from mystocks_data_collector.modules.client.tossinvest_api.responses import (
+    TossInvestBuyingPowerResponse,
+    TossInvestCurrentStockPriceResponse,
+    TossInvestOauth2AccessTokenResponse,
+    TossInvestOrdersResponse,
+    TossInvestStocksResponse,
+)
 
 
 
