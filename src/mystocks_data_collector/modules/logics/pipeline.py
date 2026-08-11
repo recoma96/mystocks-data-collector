@@ -21,10 +21,7 @@ logger = logging.getLogger(__name__)
 async def collect_data_from_tossinvest() -> Tuple[str | None, ApiRepsonses | None]:
     try:
         async with TossInvestAPI() as api:
-            res = await api.get_oauth2_access_token()
-            access_token = res.access_token
-            api.update_headers({"Authorization": f"Bearer {access_token}"})
-
+            await _get_tossinvest_access_token(api)
             return None, await asyncio.gather(
                 get_benchmark_stocks_current_prices(api, list(Config.PEER_STOCKS.keys())),
                 api.get_buying_power(),
@@ -37,13 +34,14 @@ async def collect_data_from_tossinvest() -> Tuple[str | None, ApiRepsonses | Non
 
 
 async def collect_orders_from_tossinvest(today: datetime) -> List[TossInvestOrder]:
+    yesterday = today - timedelta(days=1)
     try:
         async with TossInvestAPI() as api:
-            return await get_orders_full(api, from_date=today.date(), to_date=today.date()) # TODO 인자는 바뀔 수 있음
+            await _get_tossinvest_access_token(api)
+            return await get_orders_full(api, from_date=yesterday.date(), to_date=yesterday.date()) # TODO 인자는 바뀔 수 있음
     except APIResponseError as e:
         logger.exception("토스 API 요청 오류 응답: {status=%s}", e.status_code)
         return (e.response_body, None)
-
 
 
 def update_datas(
@@ -66,3 +64,9 @@ def create_response(error: str, code: int = 500) -> Dict[str, Any]:
         "statusCode": code,
         "body": error,
     }
+
+
+async def _get_tossinvest_access_token(api: TossInvestAPI):
+    res = await api.get_oauth2_access_token()
+    access_token = res.access_token
+    api.update_headers({"Authorization": f"Bearer {access_token}"})
