@@ -29,7 +29,7 @@ async def write_snapshots_to_s3(
 
 async def write_orders_snapshots_to_s3(s3_storage: S3Storage, orders: List[TossInvestOrder]) -> None:
     return await asyncio.to_thread(
-        s3_storage.write_snapshot, 
-        "orders", 
+        s3_storage.write_snapshot,
+        "orders",
         [item.model_dump() for item in orders]
     )

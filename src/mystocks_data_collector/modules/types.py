@@ -4,6 +4,7 @@ from enum import auto
 from typing import Dict, Tuple, TypeAlias
 
 
+from mystocks_data_collector.modules.client.enum import UpperCaseStrEnum
 from mystocks_data_collector.modules.client.tossinvest_api.responses import (
     TossInvestBuyingPowerResponse, 
     TossInvestCurrentStockPriceResponse, 
@@ -18,7 +19,7 @@ ApiRepsonses:  TypeAlias = Tuple[
 ]
 
 
-class TransactionType:
+class TransactionType(UpperCaseStrEnum):
     BUY = auto()
     SELL = auto()
 

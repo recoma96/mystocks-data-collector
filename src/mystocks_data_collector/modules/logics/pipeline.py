@@ -1,8 +1,8 @@
 import asyncio
 import logging
 from dataclasses import asdict
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from datetime import date, datetime
+from typing import List, Tuple
 
 from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.tossinvest_api.client import TossInvestAPI
@@ -12,7 +12,6 @@ from mystocks_data_collector.modules.logics.collection import get_benchmark_stoc
 from mystocks_data_collector.modules.logics.upload import DataUpdater
 from mystocks_data_collector.modules.storage import S3Storage
 from mystocks_data_collector.modules.types import ApiRepsonses, BenchmarkPosition, PortpolioSnapshot, Position, Transaction
-from mystocks_data_collector.modules.utils import now_korea
 
 
 logger = logging.getLogger(__name__)
@@ -33,12 +32,11 @@ async def collect_data_from_tossinvest() -> Tuple[str | None, ApiRepsonses | Non
         return (e.response_body, None)
 
 
-async def collect_orders_from_tossinvest(today: datetime) -> List[TossInvestOrder]:
-    yesterday = today - timedelta(days=1)
+async def collect_orders_from_tossinvest(from_date: date, to_date: date) -> List[TossInvestOrder]:
     try:
         async with TossInvestAPI() as api:
             await _get_tossinvest_access_token(api)
-            return await get_orders_full(api, from_date=yesterday.date(), to_date=yesterday.date()) # TODO 인자는 바뀔 수 있음
+            return await get_orders_full(api, from_date=from_date, to_date=to_date)
     except APIResponseError as e:
         logger.exception("토스 API 요청 오류 응답: {status=%s}", e.status_code)
         return (e.response_body, None)
@@ -59,11 +57,13 @@ def update_datas(
     uploader.update_topic("positions", [asdict(data) for data in positions], today_date)
 
 
-def create_response(error: str, code: int = 500) -> Dict[str, Any]:
-    return {
-        "statusCode": code,
-        "body": error,
-    }
+def upload_transactions(
+    target_date: date,
+    s3_storage: S3Storage,
+    transactions: List[Transaction]
+):
+    uploader = DataUpdater(s3_storage)
+    uploader.update_transaction(transactions, target_date)
 
 
 async def _get_tossinvest_access_token(api: TossInvestAPI):

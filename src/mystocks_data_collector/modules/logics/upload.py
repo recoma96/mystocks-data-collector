@@ -1,15 +1,16 @@
-from datetime import date
+from dataclasses import asdict
+from datetime import date, timedelta
 from typing import Any, List, Dict
 
 import pandas as pd
 import io
 
 from mystocks_data_collector.modules.storage import S3Storage
+from mystocks_data_collector.modules.types import Transaction
 
 
 class DataUpdater:
     s3_storage: S3Storage
-
     S3_PREFIX = "data"
 
     def __init__(self, s3_storage: S3Storage):
@@ -28,6 +29,27 @@ class DataUpdater:
             df = pd.concat([df, new_df], ignore_index=True)
 
         key = self._get_key(t, topic)
+        self.s3_storage.put_bytes(key, self._pandas_to_bytes(df))
+
+    def update_transaction(self, transactions: List[Transaction], t: date):
+        """현재 시각 기준 어제자 트랜잭션 업데이트
+        """
+        yesterday = t - timedelta(days=1)
+        TOPIC = "transactions"
+        if len(transactions) < 1:
+            return
+
+        df  = self.download(TOPIC, yesterday)
+
+        if df is not None:
+            # 이미 파일이 있음 -> 어제자 트랜잭션을 이미 전부 업로드했음
+            # 별도의 업데이트 필요 X
+            return
+
+        dict_transactions = [asdict(data) for data in transactions]
+        df = pd.DataFrame(dict_transactions)
+
+        key = self._get_key(yesterday, TOPIC)
         self.s3_storage.put_bytes(key, self._pandas_to_bytes(df))
 
     def download(self, topic: str, t: date) -> pd.DataFrame | None:
