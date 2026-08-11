@@ -33,14 +33,12 @@ def _set_logger():
 
 async def main():
     now = now_korea()
-
     await update_transactions(now)
-    await update_status(now)
+    error_response = await update_status(now)
+    return error_response if error_response else create_response("Success", 200)
 
-    return create_response("Success", 200)
 
-
-async def update_status(now: datetime):
+async def update_status(now: datetime) -> Dict[str, Any] | None:
     """현재 포트폴리오 및 비교군 실시간 상태 데이터 업데이트
     """
     if not is_us_trading_session(now):
@@ -49,7 +47,9 @@ async def update_status(now: datetime):
     s3_storage = S3Storage()
 
     error, api_responses = await collect_data_from_tossinvest()
-    if error:
+    if error or api_responses is None:
+        if error is None:
+            error = "알 수 없는 에러"
         return create_response(error, 500)
 
     await write_snapshots_to_s3(s3_storage, api_responses)
@@ -64,23 +64,29 @@ async def update_status(now: datetime):
         positions=positions,
     )
 
+    return None
 
-async def update_transactions(now: datetime):
+
+async def update_transactions(now: datetime) -> Dict[str, Any] | None:
     """어제자 매수/매도 주문건 업데이트
     """
     yesterday = now - timedelta(days=1)
     s3_storage = S3Storage()
 
     if transactions_already_uploaded(s3_storage, yesterday.date()):
-        return
+        return None
 
-    orders = await collect_orders_from_tossinvest(yesterday, yesterday)
+    error_msg, orders = await collect_orders_from_tossinvest(yesterday, yesterday)
+    if error_msg:
+        return create_response(error_msg, 500)
 
     await write_orders_snapshots_to_s3(s3_storage, orders)
 
     transactions = create_transactions_by_api_responses(orders)
 
     upload_transactions(now, s3_storage, transactions)
+
+    return None
 
 
 def create_response(error: str, code: int = 500) -> Dict[str, Any]:
