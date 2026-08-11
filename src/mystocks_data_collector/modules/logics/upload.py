@@ -65,7 +65,7 @@ class DataUpdater:
 
     def _bytes_to_pandas(self, bytedata: bytes) -> pd.DataFrame:
         buffer = io.BytesIO(bytedata)
-        df_loaded = pd.read_parquet(buffer, engine="pyarrow")
+        df_loaded = pd.read_parquet(buffer, engine="pyarrow", to_pandas_kwargs={})
         return df_loaded
 
     def _pandas_to_bytes(self, df: pd.DataFrame) -> bytes:
