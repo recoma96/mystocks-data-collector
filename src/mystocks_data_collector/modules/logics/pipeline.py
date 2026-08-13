@@ -1,11 +1,16 @@
 import asyncio
+import json
 import logging
 from dataclasses import asdict
 from datetime import date, datetime
 from typing import List, Tuple
 
+import duckdb
+
 from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.tossinvest_api.client import TossInvestAPI
+from mystocks_data_collector.modules.constants import ETF_DISPLAY_NAMES
+from mystocks_data_collector.modules.duckdb_client import fetch_latest_portfolio_snapshot, fetch_positions_snapshot
 from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
 from mystocks_data_collector.modules.exc import APIResponseError
 from mystocks_data_collector.modules.logics.collection import get_benchmark_stocks_current_prices, get_orders_full
@@ -68,6 +73,39 @@ def upload_transactions(
 
 def transactions_already_uploaded(s3_storage: S3Storage, t: date) -> bool:
     return DataUpdater(s3_storage).exists("transactions", t)
+
+
+def upload_position_view(s3_storage: S3Storage, duck_conn: duckdb.DuckDBPyConnection, now: datetime) -> str | None:
+    s3_view_key = f"view/positions/{now.strftime("%Y-%m-%d")}.json"
+    if s3_storage.exists(s3_view_key):
+        return None
+
+    # 총 보유현금 및 투자금 등 총합 관련 데이터 추출
+    date_str = now.date().strftime("%Y%m%d")
+    portfolio = fetch_latest_portfolio_snapshot(duck_conn, date_str)
+    if portfolio is None:
+        return None
+
+    portfolio_id = portfolio.pop("id")
+
+    positions = fetch_positions_snapshot(duck_conn, portfolio_id, date_str)
+
+    for position in positions:
+        if position["ticker"] in ETF_DISPLAY_NAMES:
+            position["name"] = ETF_DISPLAY_NAMES[position["ticker"]]
+
+        if position["ticker"] == "SGOV": # 추후 BOXX 같은 다른 채권 ETF를 투자하게 될 경우 해당 코드를 수정할 것
+            portfolio["sgovBalance"] = position["marketValueExcludingFees"]
+
+    uploaded_data = {
+        "updateDate": now.strftime("%Y-%d-%m %H:%M"),
+        "portfolio": portfolio,
+        "stocks": positions,
+    }
+
+    s3_storage.put_object(s3_view_key, json.dumps(uploaded_data, ensure_ascii=False, default=str))
+
+    return portfolio_id
 
 
 async def _get_tossinvest_access_token(api: TossInvestAPI):

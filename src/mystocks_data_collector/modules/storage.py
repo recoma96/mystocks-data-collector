@@ -16,8 +16,10 @@ class S3Storage:
         super().__init__()
         self._s3 = boto3.client("s3", region_name=Config.AWS_REGION_NAME)
 
-    def put_object(self, key: str, body: str) -> None:
-        self._s3.put_object(Bucket=Config.s3_bucket(), Key=key, Body=body.encode("utf-8"))
+    def put_object(self, key: str, body: str, content_type: str = "application/json") -> None:
+        self._s3.put_object(
+            Bucket=Config.s3_bucket(), Key=key, Body=body.encode("utf-8"), ContentType=content_type
+        )
 
     def put_bytes(self, key: str, body: bytes) -> None:
         self._s3.put_object(Bucket=Config.s3_bucket(), Key=key, Body=body)

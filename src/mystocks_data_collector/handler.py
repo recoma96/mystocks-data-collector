@@ -3,11 +3,13 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict
 
+from mystocks_data_collector.modules.duckdb_client import connect_s3_duckdb
 from mystocks_data_collector.modules.logics.pipeline import (
     collect_data_from_tossinvest,
     collect_orders_from_tossinvest,
     transactions_already_uploaded,
     update_datas,
+    upload_position_view,
     upload_transactions
 )
 from mystocks_data_collector.modules.logics.storage import write_orders_snapshots_to_s3, write_snapshots_to_s3
@@ -35,8 +37,14 @@ async def main():
     now = now_korea()
     await update_transactions(now)
     error_response = await update_status(now)
-    return error_response if error_response else create_response("Success", 200)
+    if error_response:
+        return error_response
 
+    # 당일 오전 5시 이후에만 확인한다 -> 미국장은 5시에 종료하기 때문이다.
+    if now.hour >= 5:
+        generate_view(now)
+
+    return create_response("Success", 200)
 
 async def update_status(now: datetime) -> Dict[str, Any] | None:
     """현재 포트폴리오 및 비교군 실시간 상태 데이터 업데이트
@@ -89,6 +97,14 @@ async def update_transactions(now: datetime) -> Dict[str, Any] | None:
     upload_transactions(now, s3_storage, transactions)
 
     return None
+
+
+def generate_view(now: datetime):
+    """웹페이지에서 분석 사이트를 보여주기 위한 json가반의 view 파일 생성하기
+    """
+    s3_storage = S3Storage()
+    with connect_s3_duckdb() as conn:
+        upload_position_view(s3_storage, conn, now)
 
 
 def create_response(error: str, code: int = 500) -> Dict[str, Any]:
