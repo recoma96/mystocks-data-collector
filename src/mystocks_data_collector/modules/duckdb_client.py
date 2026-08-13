@@ -76,3 +76,21 @@ def fetch_positions_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str,
     )
     columns = [col[0] for col in result.description]
     return [dict(zip(columns, row)) for row in result.fetchall()]
+
+
+def fetch_latest_benchmark_price_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str, date_str: str) -> List[Dict]:
+    """포트폴리오 ID에 해당하는 벤치마크 종목 데이터 조회
+    """
+    benchmark_table = f"read_parquet('s3://{Config.s3_bucket()}/data/benchmarks/date={date_str}/data.parquet')"
+    tickers = list(Config.peer_stocks().keys())
+    placeholders = ",".join(["?"] * len(tickers))
+    result = conn.execute(
+        "SELECT " \
+        "   ticker, " \
+        "   current_price " \
+        f"FROM {benchmark_table} " \
+        f"WHERE portfolio_id = '{portfolio_id}' AND ticker IN ({placeholders}) ",
+        tickers
+    )
+    columns = [col[0] for col in result.description]
+    return [dict(zip(columns, row)) for row in result.fetchall()]

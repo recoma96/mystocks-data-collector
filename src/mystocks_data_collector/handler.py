@@ -9,6 +9,7 @@ from mystocks_data_collector.modules.logics.pipeline import (
     collect_orders_from_tossinvest,
     transactions_already_uploaded,
     update_datas,
+    upload_histories_view,
     upload_position_view,
     upload_transactions
 )
@@ -39,7 +40,6 @@ async def main():
     error_response = await update_status(now)
     if error_response:
         return error_response
-
     # 당일 오전 5시 이후에만 확인한다 -> 미국장은 5시에 종료하기 때문이다.
     if now.hour >= 5:
         generate_view(now)
@@ -104,7 +104,12 @@ def generate_view(now: datetime):
     """
     s3_storage = S3Storage()
     with connect_s3_duckdb() as conn:
-        upload_position_view(s3_storage, conn, now)
+        data = upload_position_view(s3_storage, conn, now)
+        if not data:
+            return
+
+        portfolio_data, portfolio_id = data
+        upload_histories_view(s3_storage, conn, portfolio_data, portfolio_id, now)
 
 
 def create_response(error: str, code: int = 500) -> Dict[str, Any]:
