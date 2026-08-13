@@ -94,3 +94,19 @@ def fetch_latest_benchmark_price_snapshot(conn: duckdb.DuckDBPyConnection, portf
     )
     columns = [col[0] for col in result.description]
     return [dict(zip(columns, row)) for row in result.fetchall()]
+
+
+def fetch_transactions_single_day_snapshot(conn: duckdb.DuckDBPyConnection, date_str: str) -> List[Dict]:
+    # from_date, to_date는 같은 월 이어야 한다.
+    transaction_table = f"read_parquet('s3://{Config.s3_bucket()}/data/transactions/date={date_str}/data.parquet')"
+    result = conn.execute(
+        "SELECT " \
+        "   type, " \
+        "   ticker, " \
+        "   order_quantity as quantity, " \
+        "   filled_amount as amount, " \
+        "   filled_at as filledAt " \
+        f"FROM {transaction_table}"
+    )
+    columns = [col[0] for col in result.description]
+    return [dict(zip(columns, row)) for row in result.fetchall()]

@@ -11,7 +11,8 @@ from mystocks_data_collector.modules.logics.pipeline import (
     update_datas,
     upload_histories_view,
     upload_position_view,
-    upload_transactions
+    upload_transactions,
+    upload_transactions_view
 )
 from mystocks_data_collector.modules.logics.storage import write_orders_snapshots_to_s3, write_snapshots_to_s3
 from mystocks_data_collector.modules.logics.transform import create_portfolio_by_api_response, create_transactions_by_api_responses
@@ -110,6 +111,7 @@ def generate_view(now: datetime):
 
         portfolio_data, portfolio_id = data
         upload_histories_view(s3_storage, conn, portfolio_data, portfolio_id, now)
+        upload_transactions_view(s3_storage, conn, now)
 
 
 def create_response(error: str, code: int = 500) -> Dict[str, Any]:

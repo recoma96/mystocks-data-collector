@@ -10,7 +10,7 @@ import duckdb
 from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.tossinvest_api.client import TossInvestAPI
 from mystocks_data_collector.modules.constants import ETF_DISPLAY_NAMES
-from mystocks_data_collector.modules.duckdb_client import fetch_latest_benchmark_price_snapshot, fetch_latest_portfolio_snapshot, fetch_positions_snapshot
+from mystocks_data_collector.modules.duckdb_client import fetch_latest_benchmark_price_snapshot, fetch_latest_portfolio_snapshot, fetch_positions_snapshot, fetch_transactions_single_day_snapshot
 from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
 from mystocks_data_collector.modules.exc import APIResponseError
 from mystocks_data_collector.modules.logics.collection import get_benchmark_stocks_current_prices, get_orders_full
@@ -114,7 +114,7 @@ def upload_histories_view(
         portfolio_data: Dict,
         portfolio_id: int,
         now: datetime
-) -> str | None:
+):
     VIEW_KEY_FORMAT = "view/histories/{}.json"
     
     s3_view_key = VIEW_KEY_FORMAT.format(now.strftime("%Y-%m-%d"))
@@ -190,6 +190,38 @@ def upload_histories_view(
                     "profitRate": 0,
                 }]
             })
+
+    s3_storage.put_object(s3_view_key, json.dumps(uploaded_data, ensure_ascii=False, default=str))
+
+
+def upload_transactions_view(
+        s3_storage: S3Storage,
+        duck_conn: duckdb.DuckDBPyConnection,
+        now: datetime
+):
+    yesterday = now - timedelta(days=1)
+    VIEW_KEY_FORMAT = "view/transactions/{}.json"
+    
+    s3_view_key = VIEW_KEY_FORMAT.format(yesterday.strftime("%Y-%m"))
+    uploaded_data = {
+        "date": yesterday.strftime("%Y-%m"),
+        "histories": []
+    }
+    if s3_storage.exists(s3_view_key):
+        uploaded_data_bytes = s3_storage.get_object(s3_view_key)
+        if uploaded_data_bytes is not None:
+            uploaded_data = json.loads(uploaded_data_bytes)
+
+    today_transactions = fetch_transactions_single_day_snapshot(duck_conn, yesterday.strftime("%Y%m%d"))
+
+    for transaction in today_transactions:
+        uploaded_data["histories"].append({
+            "type": transaction["type"].lower(),
+            "ticker": transaction["ticker"],
+            "quantity": transaction["quantity"],
+            "amount": transaction["amount"],
+            "filledAt": transaction["filledAt"].strftime("%Y-%m-%d %H:%M:%S")
+        })
 
     s3_storage.put_object(s3_view_key, json.dumps(uploaded_data, ensure_ascii=False, default=str))
 
