@@ -98,7 +98,7 @@ def upload_position_view(s3_storage: S3Storage, duck_conn: duckdb.DuckDBPyConnec
             portfolio["sgovBalance"] = position["marketValueExcludingFees"]
 
     uploaded_data: Dict = {
-        "updateDate": now.strftime("%Y-%d-%m %H:%M"),
+        "updateDate": now.strftime("%Y-%m-%d %H:%M"),
         "portfolio": portfolio,
         "stocks": positions,
     }
