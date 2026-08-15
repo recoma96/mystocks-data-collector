@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-exec-dev = "mystocks_data_collector:main"
+exec = "mystocks_data_collector:main"
 test = "pytest:main"
 
 [build-system]

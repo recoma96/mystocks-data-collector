@@ -23,11 +23,11 @@ $ uv sync
 ### Run in Dev
 
 ```shell
-# handler()를 실행하는 개발용 엔트리포인트
-$ uv run exec-dev
+# handler()를 실행하는 엔트리포인트
+$ uv run exec
 ```
 
-`exec-dev`는 [pyproject.toml](pyproject.toml)의 `[project.scripts]`에 정의되어 있으며, [src/mystocks_data_collector/__init__.py](src/mystocks_data_collector/__init__.py)의 `main()`을 실행합니다.
+`exec`는 [pyproject.toml](pyproject.toml)의 `[project.scripts]`에 정의되어 있으며, [src/mystocks_data_collector/__init__.py](src/mystocks_data_collector/__init__.py)의 `main()`을 실행합니다.
 
 ### Run Test Codes
 
