@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: CI
 
 on:
   push:
@@ -25,20 +25,3 @@ jobs:
 
       - name: 테스트 실행
         run: uv run test
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: SSH로 접속해 배포
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -e
-            cd ~/apps/mystocks-data-collector
-            git pull origin main
-            export PATH="$HOME/.local/bin:$PATH"
-            uv sync
