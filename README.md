@@ -1,10 +1,10 @@
-# MyStocks — 개인 투자 포트폴리오 자동 수집·분석 대시보드
+# MyStocks Data Collector
 
 > 해당 페이지에 있는 투자 정보는 실제 투자금이 아닌 가상의 데이터입니다.
 
 ![](./docs/assets/readme-main-image.png)
 
-토스증권 계좌의 보유 종목, 수익률, 매수/매도 내역을 주기적으로 수집해 S3에 적재하고, 이를 가공해 웹 대시보드로 보여주는 개인용 서비스입니다. 이 저장소는 데이터 수집·적재·배치 인프라를 담당하고, 이를 시각화하는 React 기반 웹 프론트엔드는 별도 저장소에서 관리됩니다.
+**MyStocks**는 토스증권 계좌의 보유 종목, 수익률, 매수/매도 내역을 주기적으로 수집해 S3에 적재하고, 이를 가공해 웹 대시보드로 보여주는 개인 프로젝트입니다. **이 저장소(`mystocks-data-collector`)는 그중 데이터 수집·적재·배치 인프라를 담당하는 부분**이며, 위 이미지의 웹 대시보드(React 프론트엔드)는 별도 저장소 [recoma96/mystocks](https://github.com/recoma96/mystocks)에서 관리됩니다.
 
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
 ![uv](https://img.shields.io/badge/uv-package%20manager-DE5FE9?logo=uv&logoColor=white)
@@ -17,6 +17,7 @@
 
 - **개발 기간**: 1주 (2026-08-08 ~ 2026-08-14), 이후 유지보수 및 개선 진행 중
 - **개인 프로젝트**
+- **웹 프론트엔드 저장소**: [recoma96/mystocks](https://github.com/recoma96/mystocks)
 
 ## 개요
 
@@ -28,6 +29,8 @@
 - **AWS 비용 최소화**: 이후 다른 개인 프로젝트에 AWS 비용 여력을 남겨야 했기 때문에, 인프라 비용과 구조 복잡도를 최소화하는 것이 최우선 목표 중 하나였습니다.
 
 ## 주요 기능
+
+이 저장소가 수집·가공한 데이터를 기반으로 [웹 대시보드](https://github.com/recoma96/mystocks)에서 다음 기능을 제공합니다.
 
 - **현재 구성 종목 및 비중, 수익률·수익금** — 보유 종목별 비중, 평가금액, 수익률/수익금을 한눈에 확인
 - **과거부터 현재까지의 총 보유 금액(현금 포함) 대비 수익률/수익금** — 증권사 앱이 보여주지 않는 "계좌 전체 기준" 수익률을 시계열로 누적해서 확인
@@ -41,7 +44,7 @@
 1. **정기 배치 (EC2 Lightsail, crontab)**: Python 배치 프로세스가 정해진 주기로 실행되어 토스증권 OpenAPI를 async로 병렬 호출합니다 — 보유 종목, 수익률, 비교군(VOO/QQQ/QLD) 시세, 체결 내역을 한 번에 조회합니다.
 2. 조회한 데이터를 가공한 뒤 S3에 **Parquet** 형식으로 적재합니다 (`date=YYYYMMDD` Hive 파티션).
 3. 미국장이 종료되는 오전 5시 이후에는 같은 프로세스 안에서 **DuckDB**로 S3의 Parquet 데이터를 SQL로 조회하고, 웹 화면에 쓸 형태로 재가공해 S3에 **JSON(view)** 으로 올립니다.
-4. 웹 프론트엔드는 별도 저장소에서 관리되며, 태그 release 시 GitHub Actions로 빌드 결과물을 S3에 업로드합니다.
+4. 웹 프론트엔드는 별도 저장소([recoma96/mystocks](https://github.com/recoma96/mystocks))에서 관리되며, 태그 release 시 GitHub Actions로 빌드 결과물을 S3에 업로드합니다.
 5. 정적 웹 파일과 view JSON 모두 **CloudFront**를 오리진으로 거쳐 서빙되고, **WAF IP Set**으로 등록된 IP만 접근을 허용합니다. S3는 퍼블릭 액세스를 막고 CloudFront를 통한 접근만 허용합니다.
 
 ## 기술적 의사결정
