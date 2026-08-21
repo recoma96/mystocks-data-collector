@@ -3,11 +3,10 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List
 
+from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
 from mystocks_data_collector.modules.storage import S3Storage
 from mystocks_data_collector.modules.types import ApiResponses
-
-MAX_VIEW_LOOKBACK_DAYS = 15
 
 
 async def write_snapshots_to_s3(
@@ -45,7 +44,7 @@ def fetch_latest_view_before(s3_storage: S3Storage, key_format: str, now: dateti
     주말/휴장일이 겹쳐 어제자 파일이 없는 경우를 대비한 것.
     """
     # TODO: 15일을 초과하는 갭에는 대응 못 함 - 더 나은 방안 추후 고안 필요
-    for days_ago in range(1, MAX_VIEW_LOOKBACK_DAYS + 1):
+    for days_ago in range(1, Config.MAX_VIEW_LOOKBACK_DAYS + 1):
         target_date = now - timedelta(days=days_ago)
         key = key_format.format(target_date.strftime("%Y-%m-%d"))
         if not s3_storage.exists(key):

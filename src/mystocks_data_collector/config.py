@@ -14,6 +14,7 @@ class Config:
     TOSSINVEST_CLIENT_ID = os.getenv("TOSSINVEST_CLIENT_ID")
     TOSSINVEST_CLIENT_SECRET = os.getenv("TOSSINVEST_CLIENT_SECRET")
     LOGGING_LEVEL = { "INFO": logging.INFO, "DEBUG": logging.DEBUG }.get(os.getenv("LOGGING_LEVEL", "INFO"), logging.INFO)
+    MAX_VIEW_LOOKBACK_DAYS = 15
 
     @classmethod
     def s3_bucket(cls) -> str:

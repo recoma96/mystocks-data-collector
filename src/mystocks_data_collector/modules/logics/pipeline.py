@@ -113,7 +113,7 @@ def upload_histories_view(
         s3_storage: S3Storage,
         duck_conn: duckdb.DuckDBPyConnection,
         portfolio_data: Dict,
-        portfolio_id: int,
+        portfolio_id: str,
         now: datetime
 ):
     VIEW_KEY_FORMAT = "view/histories/{}.json"
