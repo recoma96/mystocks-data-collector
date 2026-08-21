@@ -23,5 +23,8 @@ jobs:
       - name: 의존성 설치
         run: uv sync
 
+      - name: 문법 확인
+        run: uv run mypy src
+
       - name: 테스트 실행
         run: uv run test
