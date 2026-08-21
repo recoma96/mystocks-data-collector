@@ -203,7 +203,7 @@ def upload_transactions_view(
     VIEW_KEY_FORMAT = "view/transactions/{}.json"
     
     s3_view_key = VIEW_KEY_FORMAT.format(yesterday.strftime("%Y-%m"))
-    uploaded_data = {
+    uploaded_data: Dict = {
         "date": yesterday.strftime("%Y-%m"),
         "histories": []
     }
