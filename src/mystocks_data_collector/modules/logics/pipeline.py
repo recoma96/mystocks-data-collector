@@ -14,6 +14,7 @@ from mystocks_data_collector.modules.duckdb_client import fetch_latest_benchmark
 from mystocks_data_collector.modules.client.tossinvest_api.orders_responses import TossInvestOrder
 from mystocks_data_collector.modules.exc import APIResponseError
 from mystocks_data_collector.modules.logics.collection import get_benchmark_stocks_current_prices, get_orders_full
+from mystocks_data_collector.modules.logics.storage import fetch_latest_view_before
 from mystocks_data_collector.modules.logics.upload import DataUpdater
 from mystocks_data_collector.modules.storage import S3Storage
 from mystocks_data_collector.modules.types import ApiResponses, BenchmarkPosition, PortfolioSnapshot, Position, Transaction
@@ -128,12 +129,11 @@ def upload_histories_view(
     }
 
     # 과거 view.json에 누적으로 쌓기 위함
-    yesterday = now - timedelta(days=1)
-    s3_yesterday_view_key = VIEW_KEY_FORMAT.format(yesterday.strftime("%Y-%m-%d"))
-    if s3_storage.exists(s3_yesterday_view_key):
-        yesterday_view_bytes = s3_storage.get_object(s3_yesterday_view_key)
-        if yesterday_view_bytes is not None:
-            uploaded_data = json.loads(yesterday_view_bytes)
+    # 주말/휴장일이 겹쳐 어제자 파일이 없을 수 있어, 존재하는 가장 최근 파일을 최대
+    # MAX_VIEW_LOOKBACK_DAYS일 전까지 거슬러 올라가며 찾는다.
+    previous_view = fetch_latest_view_before(s3_storage, VIEW_KEY_FORMAT, now)
+    if previous_view is not None:
+        uploaded_data = previous_view
 
     # 오늘자 SGOV 데이터 찾기
     sgov_value = 0
