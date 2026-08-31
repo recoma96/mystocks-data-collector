@@ -212,7 +212,16 @@ def upload_transactions_view(
         if uploaded_data_bytes is not None:
             uploaded_data = json.loads(uploaded_data_bytes)
 
-    today_transactions = fetch_transactions_single_day_snapshot(duck_conn, yesterday.strftime("%Y%m%d"))
+    try:
+        today_transactions = fetch_transactions_single_day_snapshot(duck_conn, yesterday.strftime("%Y%m%d"))
+    except duckdb.HTTPException as e:
+        if "404" in str(e):
+            # 전날 체결 건이 아예 없으면 S3에 해당 테이블(parquet) 자체가 없어 404가 발생한다.
+            # 정상적인 상황이므로 에러가 아닌 정보 로그만 남긴다.
+            logger.info("체결 내역 없음: %s", yesterday.strftime("%Y-%m-%d"))
+        else:
+            logger.exception("체결내역 조회 실패: %s", e)
+        today_transactions = []
 
     for transaction in today_transactions:
         uploaded_data["histories"].append({
