@@ -20,6 +20,9 @@ from mystocks_data_collector.modules.storage import S3Storage
 from mystocks_data_collector.modules.utils import is_us_trading_session, now_korea
 
 
+logger = logging.getLogger(__name__)
+
+
 def handler(event, context):
     _set_before_handler()
     asyncio.run(main())
@@ -37,15 +40,17 @@ def _set_logger():
 
 async def main():
     now = now_korea()
+
+    # TODO 실패시 error_message를 문자열로 반환하는데, 이때 이 문자열을 어떻게 활용할 건지 추가 고려 필요
     await update_transactions(now)
-    error_response = await update_status(now)
-    if error_response:
-        return error_response
+    await update_status(now)
+
     # 당일 오전 5시 이후에만 확인한다 -> 미국장은 5시에 종료하기 때문이다.
     if now.hour >= 5:
         generate_view(now)
 
     return create_response("Success", 200)
+
 
 async def update_status(now: datetime) -> Dict[str, Any] | None:
     """현재 포트폴리오 및 비교군 실시간 상태 데이터 업데이트
@@ -78,6 +83,7 @@ async def update_status(now: datetime) -> Dict[str, Any] | None:
 
 async def update_transactions(now: datetime) -> Dict[str, Any] | None:
     """어제자 매수/매도 주문건 업데이트
+        해당 로직은 전날 데이터를 조회하기 때문에 update_status 함수에서 제외
     """
     yesterday = now - timedelta(days=1)
     s3_storage = S3Storage()
@@ -105,12 +111,18 @@ def generate_view(now: datetime):
     """
     s3_storage = S3Storage()
     with connect_s3_duckdb() as conn:
-        data = upload_position_view(s3_storage, conn, now)
-        if not data:
-            return
+        try:
+            data = upload_position_view(s3_storage, conn, now)
+            if data:
+                portfolio_data, portfolio_id = data
+                upload_histories_view(s3_storage, conn, portfolio_data, portfolio_id, now)
+        except Exception as e:
+            # 휴장일 등으로 당일 포트폴리오 데이터 자체가 없으면 S3 파일 부재로 예외가 발생할 수 있다.
+            # 이 부분이 실패해도 아래 upload_transactions_view는 독립적으로 계속 진행돼야 한다.
+            logger.exception("포트폴리오/히스토리 view 생성 실패: %s", e)
 
-        portfolio_data, portfolio_id = data
-        upload_histories_view(s3_storage, conn, portfolio_data, portfolio_id, now)
+        # portfolio 조회 성공 여부와 무관하게 항상 실행 - 휴장일이라 당일 포트폴리오 데이터가
+        # 없어도, 전날(토요일 등) 체결 내역은 별개로 반영돼야 하기 때문
         upload_transactions_view(s3_storage, conn, now)
 
 
