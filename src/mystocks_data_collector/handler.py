@@ -37,15 +37,17 @@ def _set_logger():
 
 async def main():
     now = now_korea()
+
+    # TODO 실패시 error_message를 문자열로 반환하는데, 이때 이 문자열을 어떻게 활용할 건지 추가 고려 필요
     await update_transactions(now)
-    error_response = await update_status(now)
-    if error_response:
-        return error_response
+    await update_status(now)
+
     # 당일 오전 5시 이후에만 확인한다 -> 미국장은 5시에 종료하기 때문이다.
     if now.hour >= 5:
         generate_view(now)
 
     return create_response("Success", 200)
+
 
 async def update_status(now: datetime) -> Dict[str, Any] | None:
     """현재 포트폴리오 및 비교군 실시간 상태 데이터 업데이트
@@ -78,6 +80,7 @@ async def update_status(now: datetime) -> Dict[str, Any] | None:
 
 async def update_transactions(now: datetime) -> Dict[str, Any] | None:
     """어제자 매수/매도 주문건 업데이트
+        해당 로직은 전날 데이터를 조회하기 때문에 update_status 함수에서 제외
     """
     yesterday = now - timedelta(days=1)
     s3_storage = S3Storage()
@@ -106,11 +109,12 @@ def generate_view(now: datetime):
     s3_storage = S3Storage()
     with connect_s3_duckdb() as conn:
         data = upload_position_view(s3_storage, conn, now)
-        if not data:
-            return
+        if data:
+            portfolio_data, portfolio_id = data
+            upload_histories_view(s3_storage, conn, portfolio_data, portfolio_id, now)
 
-        portfolio_data, portfolio_id = data
-        upload_histories_view(s3_storage, conn, portfolio_data, portfolio_id, now)
+        # portfolio 조회 성공 여부와 무관하게 항상 실행 - 휴장일이라 당일 포트폴리오 데이터가
+        # 없어도, 전날(토요일 등) 체결 내역은 별개로 반영돼야 하기 때문
         upload_transactions_view(s3_storage, conn, now)
 
 
