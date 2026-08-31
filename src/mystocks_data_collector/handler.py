@@ -20,6 +20,9 @@ from mystocks_data_collector.modules.storage import S3Storage
 from mystocks_data_collector.modules.utils import is_us_trading_session, now_korea
 
 
+logger = logging.getLogger(__name__)
+
+
 def handler(event, context):
     _set_before_handler()
     asyncio.run(main())
@@ -108,10 +111,15 @@ def generate_view(now: datetime):
     """
     s3_storage = S3Storage()
     with connect_s3_duckdb() as conn:
-        data = upload_position_view(s3_storage, conn, now)
-        if data:
-            portfolio_data, portfolio_id = data
-            upload_histories_view(s3_storage, conn, portfolio_data, portfolio_id, now)
+        try:
+            data = upload_position_view(s3_storage, conn, now)
+            if data:
+                portfolio_data, portfolio_id = data
+                upload_histories_view(s3_storage, conn, portfolio_data, portfolio_id, now)
+        except Exception as e:
+            # 휴장일 등으로 당일 포트폴리오 데이터 자체가 없으면 S3 파일 부재로 예외가 발생할 수 있다.
+            # 이 부분이 실패해도 아래 upload_transactions_view는 독립적으로 계속 진행돼야 한다.
+            logger.exception("포트폴리오/히스토리 view 생성 실패: %s", e)
 
         # portfolio 조회 성공 여부와 무관하게 항상 실행 - 휴장일이라 당일 포트폴리오 데이터가
         # 없어도, 전날(토요일 등) 체결 내역은 별개로 반영돼야 하기 때문
