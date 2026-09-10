@@ -213,14 +213,14 @@ def upload_transactions_view(
             uploaded_data = json.loads(uploaded_data_bytes)
 
     try:
+        # 체결 건이 아예 없는 날은 _duckdb_file_not_found_exception(default=[]) 데코레이터가
+        # 404를 빈 목록으로 변환해줘서, 아래 for문이 항상 안전하게 돈다.
         today_transactions = fetch_transactions_single_day_snapshot(duck_conn, yesterday.strftime("%Y%m%d"))
-    except duckdb.HTTPException as e:
-        if "404" in str(e):
-            # 전날 체결 건이 아예 없으면 S3에 해당 테이블(parquet) 자체가 없어 404가 발생한다.
-            # 정상적인 상황이므로 에러가 아닌 정보 로그만 남긴다.
+        if not today_transactions:
             logger.info("체결 내역 없음: %s", yesterday.strftime("%Y-%m-%d"))
-        else:
-            logger.exception("체결내역 조회 실패: %s", e)
+    except duckdb.HTTPException as e:
+        # 404가 아닌 그 외 HTTP 에러(403/500 등)는 데코레이터가 그대로 재전파한다.
+        logger.exception("체결내역 조회 실패: %s", e)
         today_transactions = []
 
     for transaction in today_transactions:

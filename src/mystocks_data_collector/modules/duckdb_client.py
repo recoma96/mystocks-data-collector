@@ -1,10 +1,12 @@
 import os
 from contextlib import contextmanager
-from typing import Dict, Iterator, List
+from functools import wraps
+from typing import Any, Callable, Dict, Iterator, List
 
 import duckdb
 
 from mystocks_data_collector.config import Config
+from mystocks_data_collector.modules.generic import P, T
 
 
 @contextmanager
@@ -36,6 +38,27 @@ def connect_s3_duckdb() -> Iterator[duckdb.DuckDBPyConnection]:
         yield conn
 
 
+def _duckdb_file_not_found_exception(default: Any) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    """조회 대상 parquet 파일 자체가 없어 404가 발생하는 경우, 예외 대신 지정한 default 값을 반환한다.
+    (예: 특정 날짜에 체결 건이 하나도 없어 해당 날짜의 테이블이 애초에 생성되지 않은 경우)
+    """
+    def _decorator(func: Callable[P, T]) -> Callable[P, T]:
+        @wraps(func)
+        def _wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            try:
+                return func(*args, **kwargs)
+            except duckdb.HTTPException as e:
+                if "404" in str(e):
+                    return default
+                raise
+
+        return _wrapper
+
+    return _decorator
+
+
+
+@_duckdb_file_not_found_exception(default=None)
 def fetch_latest_portfolio_snapshot(conn: duckdb.DuckDBPyConnection, date_str: str) -> Dict | None:
     """date_str(YYYYmmdd) 기준 포트폴리오 스냅샷 중, 오전 5시 이후로 가장 이른 데이터를 조회한다.
     """
@@ -56,6 +79,7 @@ def fetch_latest_portfolio_snapshot(conn: duckdb.DuckDBPyConnection, date_str: s
     row = result.fetchone()
     return dict(zip((col[0] for col in result.description), row)) if row else None
 
+@_duckdb_file_not_found_exception(default=[])
 def fetch_positions_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str, date_str: str) -> List[Dict]:
     """포트폴리오 ID에 해당하는 포지션 데이터 조회
     """
@@ -78,6 +102,7 @@ def fetch_positions_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str,
     return [dict(zip(columns, row)) for row in result.fetchall()]
 
 
+@_duckdb_file_not_found_exception(default=[])
 def fetch_latest_benchmark_price_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str, date_str: str) -> List[Dict]:
     """포트폴리오 ID에 해당하는 벤치마크 종목 데이터 조회
     """
@@ -96,6 +121,7 @@ def fetch_latest_benchmark_price_snapshot(conn: duckdb.DuckDBPyConnection, portf
     return [dict(zip(columns, row)) for row in result.fetchall()]
 
 
+@_duckdb_file_not_found_exception(default=[])
 def fetch_transactions_single_day_snapshot(conn: duckdb.DuckDBPyConnection, date_str: str) -> List[Dict]:
     # from_date, to_date는 같은 월 이어야 한다.
     transaction_table = f"read_parquet('s3://{Config.s3_bucket()}/data/transactions/date={date_str}/data.parquet')"
