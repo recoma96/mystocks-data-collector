@@ -224,6 +224,22 @@ def upload_transactions_view(
         today_transactions = []
 
     for transaction in today_transactions:
+        is_already_exists = False
+
+        for history in uploaded_data["histories"]:
+            # 동일한 체결내역이 있는지 확인
+            if (
+                datetime.strptime(history["filledAt"], "%Y-%m-%d %H:%M:%S") == transaction["filledAt"].replace(microsecond=0, tzinfo=None)
+                and history["type"] == transaction["type"].lower()
+                and history["ticker"] == transaction["ticker"]
+                and history["amount"] == transaction["amount"]
+            ):
+                is_already_exists = True
+                break
+
+        if is_already_exists:
+            continue
+
         uploaded_data["histories"].append({
             "type": transaction["type"].lower(),
             "ticker": transaction["ticker"],
