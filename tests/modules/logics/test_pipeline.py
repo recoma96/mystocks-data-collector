@@ -243,6 +243,37 @@ def test_upload_transactions_view_still_appends_genuinely_new_transactions():
     assert uploaded["histories"][1]["filledAt"] == "2026-08-19 14:30:00"
 
 
+def test_upload_transactions_view_keeps_distinct_transactions_with_same_filledAt():
+    """filledAt이 같아도 type/ticker/amount 중 하나라도 다르면 서로 다른 체결내역으로 취급해야 한다."""
+    filled_at = datetime(2026, 8, 19, 10, 0, 0)
+    existing_entry = {
+        "type": "buy", "ticker": "AAPL", "quantity": 10, "amount": 1785.0,
+        "filledAt": "2026-08-19 10:00:00",
+    }
+    mock_s3 = _make_transactions_mock_s3({"date": "2026-08", "histories": [existing_entry]})
+    duck_conn = MagicMock()
+
+    fetched = [
+        _make_raw_transaction(filled_at=filled_at, type_="SELL", ticker="AAPL", amount=1785.0),  # type만 다름
+        _make_raw_transaction(filled_at=filled_at, type_="BUY", ticker="GOOG", amount=1785.0),  # ticker만 다름
+    ]
+
+    with patch(
+        "mystocks_data_collector.modules.logics.pipeline.fetch_transactions_single_day_snapshot",
+        return_value=fetched,
+    ):
+        upload_transactions_view(mock_s3, duck_conn, NOW)
+
+    uploaded = _uploaded_transactions_data(mock_s3)
+
+    assert len(uploaded["histories"]) == 3
+    assert uploaded["histories"][0] == existing_entry
+    assert uploaded["histories"][1]["type"] == "sell"
+    assert uploaded["histories"][1]["ticker"] == "AAPL"
+    assert uploaded["histories"][2]["type"] == "buy"
+    assert uploaded["histories"][2]["ticker"] == "GOOG"
+
+
 def test_upload_transactions_view_appends_normally_when_no_existing_file():
     mock_s3 = _make_transactions_mock_s3(None)
     duck_conn = MagicMock()
