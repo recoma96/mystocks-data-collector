@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from unittest.mock import MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -10,6 +11,7 @@ from mystocks_data_collector.modules.storage import S3Storage
 VIEW_KEY_FORMAT = "view/histories/{}.json"
 TRANSACTIONS_VIEW_KEY_FORMAT = "view/transactions/{}.json"
 NOW = datetime(2026, 8, 20)
+KST = ZoneInfo("Asia/Seoul")
 
 
 def _make_mock_s3(existing: dict) -> MagicMock:
@@ -188,6 +190,12 @@ def _make_raw_transaction(*, filled_at: datetime, type_: str = "BUY", ticker: st
     }
 
 
+def _real_filled_at(year: int, month: int, day: int, hour: int, minute: int, second: int) -> datetime:
+    """S3 Parquet(DB)에 저장된 뒤 DuckDB로 다시 조회했을 때의 filledAt 형태를 재현한다.
+    """
+    return datetime(year, month, day, hour, minute, second, 654321, tzinfo=KST)
+
+
 def _uploaded_transactions_data(mock_s3: MagicMock) -> dict:
     key, body = mock_s3.put_object.call_args.args
     assert key == TRANSACTIONS_VIEW_KEY_FORMAT.format("2026-08")
@@ -197,6 +205,7 @@ def _uploaded_transactions_data(mock_s3: MagicMock) -> dict:
 def test_upload_transactions_view_skips_transaction_already_recorded():
     """NOW=2026-08-20 기준 조회 대상은 어제(2026-08-19)자 체결내역이다.
     이미 월별 view에 기록된 것과 filledAt이 동일한 체결내역이 다시 조회돼도 중복 추가되면 안 된다.
+    실제 토스 API의 filledAt은 microsecond+KST tzinfo가 붙어 있어서, S3에 저장된
     """
     existing_entry = {
         "type": "buy", "ticker": "AAPL", "quantity": 10, "amount": 1785.0,
@@ -207,7 +216,7 @@ def test_upload_transactions_view_skips_transaction_already_recorded():
 
     with patch(
         "mystocks_data_collector.modules.logics.pipeline.fetch_transactions_single_day_snapshot",
-        return_value=[_make_raw_transaction(filled_at=datetime(2026, 8, 19, 10, 0, 0))],
+        return_value=[_make_raw_transaction(filled_at=_real_filled_at(2026, 8, 19, 10, 0, 0))],
     ):
         upload_transactions_view(mock_s3, duck_conn, NOW)
 
@@ -225,8 +234,8 @@ def test_upload_transactions_view_still_appends_genuinely_new_transactions():
     duck_conn = MagicMock()
 
     fetched = [
-        _make_raw_transaction(filled_at=datetime(2026, 8, 19, 10, 0, 0)),  # 기존과 동일(중복)
-        _make_raw_transaction(ticker="GOOG", filled_at=datetime(2026, 8, 19, 14, 30, 0)),  # 신규
+        _make_raw_transaction(filled_at=_real_filled_at(2026, 8, 19, 10, 0, 0)),  # 기존과 동일(중복)
+        _make_raw_transaction(ticker="GOOG", filled_at=_real_filled_at(2026, 8, 19, 14, 30, 0)),  # 신규
     ]
 
     with patch(
@@ -245,7 +254,7 @@ def test_upload_transactions_view_still_appends_genuinely_new_transactions():
 
 def test_upload_transactions_view_keeps_distinct_transactions_with_same_filledAt():
     """filledAt이 같아도 type/ticker/amount 중 하나라도 다르면 서로 다른 체결내역으로 취급해야 한다."""
-    filled_at = datetime(2026, 8, 19, 10, 0, 0)
+    filled_at = _real_filled_at(2026, 8, 19, 10, 0, 0)
     existing_entry = {
         "type": "buy", "ticker": "AAPL", "quantity": 10, "amount": 1785.0,
         "filledAt": "2026-08-19 10:00:00",
@@ -280,7 +289,7 @@ def test_upload_transactions_view_appends_normally_when_no_existing_file():
 
     with patch(
         "mystocks_data_collector.modules.logics.pipeline.fetch_transactions_single_day_snapshot",
-        return_value=[_make_raw_transaction(filled_at=datetime(2026, 8, 19, 9, 5, 0))],
+        return_value=[_make_raw_transaction(filled_at=_real_filled_at(2026, 8, 19, 9, 5, 0))],
     ):
         upload_transactions_view(mock_s3, duck_conn, NOW)
 
