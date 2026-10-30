@@ -17,7 +17,7 @@ from mystocks_data_collector.modules.logics.pipeline import (
 from mystocks_data_collector.modules.logics.storage import write_orders_snapshots_to_s3, write_snapshots_to_s3
 from mystocks_data_collector.modules.logics.transform import create_portfolio_by_api_response, create_transactions_by_api_responses
 from mystocks_data_collector.modules.storage import S3Storage
-from mystocks_data_collector.modules.utils import is_us_trading_session, now_korea
+from mystocks_data_collector.modules.utils import is_end_of_investing_time, is_us_trading_session, now_korea
 
 
 logger = logging.getLogger(__name__)
@@ -45,8 +45,8 @@ async def main():
     await update_transactions(now)
     await update_status(now)
 
-    # 당일 오전 5시 이후에만 확인한다 -> 미국장은 5시에 종료하기 때문이다.
-    if now.hour >= 5:
+    # 미국장 종료 직후에 대시보드에 필요한 데이터들을 가공한다.
+    if is_end_of_investing_time(now):
         generate_view(now)
 
     return create_response("Success", 200)

@@ -28,6 +28,20 @@ def or_zero(value: float | None) -> float:
     return value if value is not None else 0.0
 
 
+def nyse_trading_hours_kst(now: datetime) -> tuple[datetime, datetime] | None:
+    """now(KST)가 속한 거래일의 NYSE 개장/마감 시각을 KST datetime으로 반환한다.
+    해당 거래일에 장이 열리지 않았으면 None을 반환한다.
+    """
+    schedule = _nyse_schedule_of(now)
+    if schedule.empty:
+        return None
+
+    KST = ZoneInfo("Asia/Seoul")
+    market_open = schedule.iloc[0]["market_open"].tz_convert(KST).to_pydatetime()
+    market_close = schedule.iloc[0]["market_close"].tz_convert(KST).to_pydatetime()
+    return market_open, market_close
+
+
 def is_end_of_investing_time(now: datetime) -> bool:
     """now(KST) 시각 기준으로, 해당 거래일의 미국장이 실제로 마감됐는지 확인한다.
 
@@ -35,9 +49,9 @@ def is_end_of_investing_time(now: datetime) -> bool:
     제공하는 실제 마감 시각을 기준으로 판단하므로, "오전 5시"처럼 하드코딩된 값에
     의존하지 않는다. 그날 장이 아예 없었던 경우(휴장일)는 마감 이후로 취급한다.
     """
-    schedule = _nyse_schedule_of(now)
-    if schedule.empty:
+    hours = nyse_trading_hours_kst(now)
+    if hours is None:
         return True
 
-    market_close = schedule.iloc[0]["market_close"]
+    _, market_close = hours
     return now >= market_close
