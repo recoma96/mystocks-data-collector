@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from mystocks_data_collector.modules.utils import is_us_trading_session
+from mystocks_data_collector.modules.utils import is_end_of_investing_time, is_us_trading_session
 
 KST = ZoneInfo("Asia/Seoul")
 
@@ -21,3 +21,20 @@ KST = ZoneInfo("Asia/Seoul")
 )
 def test_is_us_trading_session(when: datetime, expected: bool):
     assert is_us_trading_session(when) is expected
+
+
+@pytest.mark.parametrize(
+    ("when", "expected"),
+    [
+        # 겨울(EST, UTC-5): 2026-01-20 마감 21:00 UTC = 다음날 06:00 KST
+        pytest.param(datetime(2026, 1, 21, 5, 59, 59, tzinfo=KST), False, id="겨울 마감 직전(05:59:59)"),
+        pytest.param(datetime(2026, 1, 21, 6, 0, 0, tzinfo=KST), True, id="겨울 마감 경계값(06:00:00)"),
+        # 여름(EDT, UTC-4): 2026-07-02 마감 20:00 UTC = 다음날 05:00 KST
+        pytest.param(datetime(2026, 7, 3, 4, 59, 59, tzinfo=KST), False, id="여름 마감 직전(04:59:59)"),
+        pytest.param(datetime(2026, 7, 3, 5, 0, 0, tzinfo=KST), True, id="여름 마감 경계값(05:00:00)"),
+        # 휴장일(토요일 세션) - 그날 장이 아예 없으면 마감 이후로 취급
+        pytest.param(datetime(2026, 1, 4, 6, 0, 0, tzinfo=KST), True, id="휴장일(토요일 세션)"),
+    ],
+)
+def test_is_end_of_investing_time(when: datetime, expected: bool):
+    assert is_end_of_investing_time(when) is expected
