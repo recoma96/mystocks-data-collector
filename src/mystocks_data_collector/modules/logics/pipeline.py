@@ -82,14 +82,13 @@ def upload_position_view(s3_storage: S3Storage, duck_conn: duckdb.DuckDBPyConnec
         return None
 
     # 총 보유현금 및 투자금 등 총합 관련 데이터 추출
-    date_str = now.date().strftime("%Y%m%d")
-    portfolio = fetch_latest_portfolio_snapshot(duck_conn, date_str)
+    portfolio = fetch_latest_portfolio_snapshot(duck_conn, now)
     if portfolio is None:
         return None
 
     portfolio_id: str = portfolio.pop("id")
 
-    positions = fetch_positions_snapshot(duck_conn, portfolio_id, date_str)
+    positions = fetch_positions_snapshot(duck_conn, portfolio_id, now)
 
     for position in positions:
         if position["ticker"] in ETF_DISPLAY_NAMES:
@@ -162,7 +161,7 @@ def upload_histories_view(
     })
 
     # benchmarks 조회 및 수정
-    latest_benchmarks_raw = fetch_latest_benchmark_price_snapshot(duck_conn, portfolio_id, now.strftime("%Y%m%d"))
+    latest_benchmarks_raw = fetch_latest_benchmark_price_snapshot(duck_conn, portfolio_id, now)
     latest_benchmark_prices = { e["ticker"]: e["current_price"] for e in latest_benchmarks_raw }
 
     # TODO 더이상 비교군에 포함되지 않은 종목을 삭제해야 하나
@@ -215,7 +214,7 @@ def upload_transactions_view(
     try:
         # 체결 건이 아예 없는 날은 _duckdb_file_not_found_exception(default=[]) 데코레이터가
         # 404를 빈 목록으로 변환해줘서, 아래 for문이 항상 안전하게 돈다.
-        today_transactions = fetch_transactions_single_day_snapshot(duck_conn, yesterday.strftime("%Y%m%d"))
+        today_transactions = fetch_transactions_single_day_snapshot(duck_conn, yesterday)
         if not today_transactions:
             logger.info("체결 내역 없음: %s", yesterday.strftime("%Y-%m-%d"))
     except duckdb.HTTPException as e:

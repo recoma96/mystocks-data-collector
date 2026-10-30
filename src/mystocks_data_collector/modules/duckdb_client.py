@@ -60,9 +60,10 @@ def _duckdb_file_not_found_exception(default: Any) -> Callable[[Callable[P, T]],
 
 
 @_duckdb_file_not_found_exception(default=None)
-def fetch_latest_portfolio_snapshot(conn: duckdb.DuckDBPyConnection, date_str: str) -> Dict | None:
-    """date_str(YYYYmmdd) 기준 포트폴리오 스냅샷 중, 오전 5시 이후로 가장 이른 데이터를 조회한다.
+def fetch_latest_portfolio_snapshot(conn: duckdb.DuckDBPyConnection, date: datetime) -> Dict | None:
+    """date 기준 포트폴리오 스냅샷 중, 오전 5시 이후로 가장 이른 데이터를 조회한다.
     """
+    date_str = date.strftime("%Y%m%d")
     portfolio_table = f"read_parquet('s3://{Config.s3_bucket()}/data/portfolio/date={date_str}/data.parquet')"
     result = conn.execute(
         "SELECT" \
@@ -81,9 +82,10 @@ def fetch_latest_portfolio_snapshot(conn: duckdb.DuckDBPyConnection, date_str: s
     return dict(zip((col[0] for col in result.description), row)) if row else None
 
 @_duckdb_file_not_found_exception(default=[])
-def fetch_positions_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str, date_str: str) -> List[Dict]:
+def fetch_positions_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str, date: datetime) -> List[Dict]:
     """포트폴리오 ID에 해당하는 포지션 데이터 조회
     """
+    date_str = date.strftime("%Y%m%d")
     position_table = f"read_parquet('s3://{Config.s3_bucket()}/data/positions/date={date_str}/data.parquet')"
     result = conn.execute(
         "SELECT " \
@@ -104,9 +106,10 @@ def fetch_positions_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str,
 
 
 @_duckdb_file_not_found_exception(default=[])
-def fetch_latest_benchmark_price_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str, date_str: str) -> List[Dict]:
+def fetch_latest_benchmark_price_snapshot(conn: duckdb.DuckDBPyConnection, portfolio_id: str, date: datetime) -> List[Dict]:
     """포트폴리오 ID에 해당하는 벤치마크 종목 데이터 조회
     """
+    date_str = date.strftime("%Y%m%d")
     benchmark_table = f"read_parquet('s3://{Config.s3_bucket()}/data/benchmarks/date={date_str}/data.parquet')"
     tickers = list(Config.peer_stocks().keys())
     placeholders = ",".join(["?"] * len(tickers))
@@ -123,8 +126,9 @@ def fetch_latest_benchmark_price_snapshot(conn: duckdb.DuckDBPyConnection, portf
 
 
 @_duckdb_file_not_found_exception(default=[])
-def fetch_transactions_single_day_snapshot(conn: duckdb.DuckDBPyConnection, date_str: str) -> List[Dict]:
+def fetch_transactions_single_day_snapshot(conn: duckdb.DuckDBPyConnection, date: datetime) -> List[Dict]:
     # from_date, to_date는 같은 월 이어야 한다.
+    date_str = date.strftime("%Y%m%d")
     transaction_table = f"read_parquet('s3://{Config.s3_bucket()}/data/transactions/date={date_str}/data.parquet')"
     result = conn.execute(
         "SELECT " \
