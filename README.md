@@ -43,7 +43,7 @@
 
 1. **정기 배치 (EC2 Lightsail, crontab)**: Python 배치 프로세스가 정해진 주기로 실행되어 토스증권 OpenAPI를 async로 병렬 호출합니다 — 보유 종목, 수익률, 비교군(VOO/QQQ/QLD) 시세, 체결 내역을 한 번에 조회합니다.
 2. 조회한 데이터를 가공한 뒤 S3에 **Parquet** 형식으로 적재합니다 (`date=YYYYMMDD` Hive 파티션).
-3. 미국장이 종료되는 오전 5시 이후에는 같은 프로세스 안에서 **DuckDB**로 S3의 Parquet 데이터를 SQL로 조회하고, 웹 화면에 쓸 형태로 재가공해 S3에 **JSON(view)** 으로 올립니다.
+3. 미국장이 종료되는 시각(5시/6시) 이후에는 같은 프로세스 안에서 **DuckDB**로 S3의 Parquet 데이터를 SQL로 조회하고, 웹 화면에 쓸 형태로 재가공해 S3에 **JSON(view)** 으로 올립니다.
 4. 웹 프론트엔드는 별도 저장소([recoma96/mystocks](https://github.com/recoma96/mystocks))에서 관리되며, 태그 release 시 GitHub Actions로 빌드 결과물을 S3에 업로드합니다.
 5. 정적 웹 파일과 view JSON 모두 **CloudFront**를 오리진으로 거쳐 서빙되고, **WAF IP Set**으로 등록된 IP만 접근을 허용합니다. S3는 퍼블릭 액세스를 막고 CloudFront를 통한 접근만 허용합니다.
 
