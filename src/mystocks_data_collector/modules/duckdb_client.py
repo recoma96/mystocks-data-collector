@@ -8,6 +8,7 @@ import duckdb
 
 from mystocks_data_collector.config import Config
 from mystocks_data_collector.modules.generic import P, T
+from mystocks_data_collector.modules.utils import nyse_trading_hours_kst
 
 
 @contextmanager
@@ -61,8 +62,16 @@ def _duckdb_file_not_found_exception(default: Any) -> Callable[[Callable[P, T]],
 
 @_duckdb_file_not_found_exception(default=None)
 def fetch_latest_portfolio_snapshot(conn: duckdb.DuckDBPyConnection, date: datetime) -> Dict | None:
-    """date 기준 포트폴리오 스냅샷 중, 오전 5시 이후로 가장 이른 데이터를 조회한다.
+    """date 기준 포트폴리오 스냅샷 중, 미국장 마감 이후로 가장 이른 데이터를 조회한다.
+
+    서머타임 등으로 마감 시각이 날마다 달라질 수 있어, "오전 5시" 같은 고정값 대신
+    nyse_trading_hours_kst로 구한 실제 마감 시각을 바인딩 파라미터로 사용한다.
     """
+    hours = nyse_trading_hours_kst(date)
+    if hours is None:
+        return None
+
+    _, market_close = hours
     date_str = date.strftime("%Y%m%d")
     portfolio_table = f"read_parquet('s3://{Config.s3_bucket()}/data/portfolio/date={date_str}/data.parquet')"
     result = conn.execute(
@@ -74,9 +83,10 @@ def fetch_latest_portfolio_snapshot(conn: duckdb.DuckDBPyConnection, date: datet
         "   cash_balance as cashBalance, " \
         "   profit_amount_excluding_fees as profitAmountExcludingFees " \
         f"FROM {portfolio_table} " \
-        "WHERE strftime(log_date, '%H:%M:%S') >= '05:00:00' " \
+        "WHERE log_date >= ? " \
         "ORDER BY log_date asc " \
-        "LIMIT 1"
+        "LIMIT 1",
+        [market_close]
     )
     row = result.fetchone()
     return dict(zip((col[0] for col in result.description), row)) if row else None
